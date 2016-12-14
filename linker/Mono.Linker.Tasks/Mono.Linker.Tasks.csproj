@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0">
+  <PropertyGroup>
+    <VersionPrefix>0.1.0-preview</VersionPrefix>
+    <TargetFramework>netstandard1.3</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="LinkTask.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Mono.Linker.Tasks.targets" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Content Include="Mono.Linker.Tasks.targets;$(OutputPath)\*.dll;$(OutputPath)\*.json">
+      <Pack>true</Pack>
+      <PackagePath>build\</PackagePath>
+    </Content>
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Build.Framework">
+      <Version>0.1.0-preview-00028-160627</Version>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Build.Utilities.Core">
+      <Version>0.1.0-preview-00028-160627</Version>
+    </PackageReference>
+  </ItemGroup>
+
+  
+</Project>
