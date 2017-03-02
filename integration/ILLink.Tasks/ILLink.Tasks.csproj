@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
    <PropertyGroup>
     <VersionPrefix>0.1.2-preview</VersionPrefix>
@@ -92,9 +91,11 @@
 
   <ItemGroup>
     <Compile Include="LinkTask.cs" />
-    <Compile Include="GenerateRoots.cs" />
     <Compile Include="DepsJsonLinker.cs" />
     <Compile Include="CompareSizes.cs" />
+    <Compile Include="ComputeManagedAssemblies.cs" />
+    <Compile Include="GetRuntimeLibraries.cs" />
+    <Compile Include="CreateRootDescriptorFile.cs" />
     <Compile Include="Microsoft.NET.Build.Tasks/LockFileCache.cs" />
     <Compile Include="Microsoft.NET.Build.Tasks/BuildErrorException.cs" />
   </ItemGroup>

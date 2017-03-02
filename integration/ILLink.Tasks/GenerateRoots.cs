@@ -11,7 +11,7 @@ using Microsoft.NET.Build.Tasks; // LockFileCache
 using NuGet.ProjectModel; // LockFileTargetLibrary
 using NuGet.Frameworks; // NuGetFramework.Parse(targetframework)
 
-namespace Mono.Linker.GenerateRoots
+namespace ILLink.Tasks
 {
 	public class GenerateRoots : Task
 	{
