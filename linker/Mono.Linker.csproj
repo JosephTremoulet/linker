@@ -10,7 +10,8 @@
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Mono.Linker</RootNamespace>
-    <AssemblyName>monolinker</AssemblyName>
+    <AssemblyName Condition=" ! $(Configuration.StartsWith('netcore')) ">monolinker</AssemblyName>
+    <AssemblyName Condition=" $(Configuration.StartsWith('netcore')) ">illink</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -73,7 +74,7 @@
     <Compile Include="Mono.Linker\XApiReader.cs" />
     <Compile Include="Mono.Linker.Steps\TypeMapStep.cs" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(DoNotEmbedDescriptors)' == '' ">
+  <ItemGroup Condition=" '$(DoNotEmbedDescriptors)' == '' AND ! $(Configuration.StartsWith('netcore'))">
     <EmbeddedResource Include="Descriptors\mscorlib.xml">
       <LogicalName>mscorlib.xml</LogicalName>
     </EmbeddedResource>
