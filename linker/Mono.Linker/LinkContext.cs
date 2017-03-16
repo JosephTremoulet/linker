@@ -97,6 +97,10 @@ namespace Mono.Linker {
 			get { return _resolver; }
 		}
 
+		public ReaderParameters ReaderParameters {
+			get { return _readerParameters; }
+		}
+
 		public ISymbolReaderProvider SymbolReaderProvider {
 			get { return _symbolReaderProvider; }
 			set { _symbolReaderProvider = value; }
@@ -115,15 +119,21 @@ namespace Mono.Linker {
 		}
 
 		public LinkContext (Pipeline pipeline, AssemblyResolver resolver)
+			: this(pipeline, resolver, new ReaderParameters
+			{
+				AssemblyResolver = resolver
+			})
+		{
+		}
+
+		public LinkContext (Pipeline pipeline, AssemblyResolver resolver, ReaderParameters readerParameters)
 		{
 			_pipeline = pipeline;
 			_resolver = resolver;
 			_actions = new Hashtable ();
 			_parameters = new Hashtable ();
 			_annotations = new AnnotationStore ();
-			_readerParameters = new ReaderParameters {
-				AssemblyResolver = _resolver,
-			};
+			_readerParameters = readerParameters;
 		}
 
 		public TypeDefinition GetType (string fullName)
@@ -175,12 +185,12 @@ namespace Mono.Linker {
 			}
 		}
 
-		bool SeenFirstTime (AssemblyDefinition assembly)
+		protected bool SeenFirstTime (AssemblyDefinition assembly)
 		{
 			return !_annotations.HasAction (assembly);
 		}
 
-		public void SafeReadSymbols (AssemblyDefinition assembly)
+		public virtual void SafeReadSymbols (AssemblyDefinition assembly)
 		{
 			if (!_linkSymbols)
 				return;
@@ -213,7 +223,7 @@ namespace Mono.Linker {
 			return reference;
 		}
 
-		void SetAction (AssemblyDefinition assembly)
+		protected void SetAction (AssemblyDefinition assembly)
 		{
 			AssemblyAction action = AssemblyAction.Link;
 

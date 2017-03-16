@@ -38,7 +38,11 @@ namespace Mono.Linker {
 
 	public class Driver {
 
+#if NET_CORE
+		static readonly string _linker = "IL Linker";
+#else
 		static readonly string _linker = "Mono CIL Linker";
+#endif
 
 		public static int Main (string [] args)
 		{
@@ -175,7 +179,7 @@ namespace Mono.Linker {
 			p.Process (context);
 		}
 
-		static void AddCustomStep (Pipeline pipeline, string arg)
+		protected static void AddCustomStep (Pipeline pipeline, string arg)
 		{
 			int pos = arg.IndexOf (":");
 			if (pos == -1) {
@@ -236,7 +240,7 @@ namespace Mono.Linker {
 			return (string []) lines.ToArray (typeof (string));
 		}
 
-		static I18nAssemblies ParseI18n (string str)
+		protected static I18nAssemblies ParseI18n (string str)
 		{
 			I18nAssemblies assemblies = I18nAssemblies.None;
 			string [] parts = str.Split (',');
@@ -272,7 +276,11 @@ namespace Mono.Linker {
 			Console.WriteLine (_linker);
 			if (msg != null)
 				Console.WriteLine ("Error: " + msg);
+#if NET_CORE
+			Console.WriteLine ("illink [options] -x|-a|-i file");
+#else
 			Console.WriteLine ("monolinker [options] -x|-a|-i file");
+#endif
 
 			Console.WriteLine ("   --about     About the {0}", _linker);
 			Console.WriteLine ("   --version   Print the version number of the {0}", _linker);
