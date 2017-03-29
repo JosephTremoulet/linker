@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp1.0</TargetFramework>
+    <VersionPrefix>0.1.0-preview</VersionPrefix>
+    <PackageOutputPath>../nupkgs</PackageOutputPath>
+    <NuspecFile>dotnet-link.nuspec</NuspecFile>
+    <NuspecProperties>id=$(AssemblyName);version=$(VersionPrefix);authors=$(AssemblyName);description=dotnet-link cli tool;tfm=$(TargetFramework)</NuspecProperties>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" Version="0.1.0-e161108-1" />
+  </ItemGroup>
+
+</Project>

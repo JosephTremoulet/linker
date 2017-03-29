@@ -1,0 +1,67 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+   <PropertyGroup>
+    <VersionPrefix>0.1.0-preview</VersionPrefix>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <RuntimeFrameworkVersion>2.0.0-beta-001509-00</RuntimeFrameworkVersion>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <PackageOutputPath>../nupkgs</PackageOutputPath>
+    <!-- IsTool true causes the build output to be placed in the
+         package's tools folder. This allows projects to reference the
+         tasks package without including the tasks dll in their
+         output. -->
+    <IsTool>true</IsTool>
+    <IncludeBuildOutput>true</IncludeBuildOutput>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="LinkTask.cs" />
+    <Compile Include="GenerateRoots.cs" />
+    <Compile Include="DepsJsonLinker.cs" />
+    <Compile Include="CompareSizes.cs" />
+    <Compile Include="Microsoft.NET.Build.Tasks/LockFileCache.cs" />
+    <Compile Include="Microsoft.NET.Build.Tasks/BuildErrorException.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Illink.Tasks.targets">
+      <!-- Targets under the build directory of the package
+           automatically get included in the consumer's build. -->
+      <PackagePath>build</PackagePath>
+    </Content>
+    <Content Include="$(OutputPath)*.dll;$(OutputPath)*.json">
+      <PackagePath>tools</PackagePath>
+    </Content>
+
+    <!-- This directory contains the published linker portable
+         app. -->
+    <Content Include="linker/*">
+      <PackagePath>tools</PackagePath>
+    </Content>
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <!-- PrivateAssets="All" prevents the tasks package from depending
+         these packages, so that restoring the tasks package from
+         another project doesn't make these dependencies part of the
+         consuming project. -->
+    <!-- TODO: The tasks package still has a dependency on
+         Microsoft.NETCore.App. We need to test it in various project
+         setups to ensure that this works in, for example, apps
+         targeting different versions of netcoreapp. -->
+    <PackageReference Include="Microsoft.Build.Framework" Version="0.1.0-preview-00028-160627" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="0.1.0-preview-00028-160627" PrivateAssets="All" />
+    <PackageReference Include="NuGet.ProjectModel" Version="4.0.0-rtm-2241" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!-- PublishLinker places a published portable version of the linker
+       in the linker directory, which is included in the package. -->
+  <Target Name="PublishLinker"
+          AfterTargets="Build">
+    <MSBuild Projects="../../linker/Mono.Linker.csproj"
+             Targets="Restore;Publish"
+             Properties="PublishDir=$(MSBuildThisFileDirectory)linker;Configuration=netcore_Release" />
+  </Target>
+
+</Project>

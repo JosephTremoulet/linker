@@ -1,0 +1,100 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <UsingTask TaskName="Link" AssemblyFile="$(MSBuildThisFileDirectory)../tools/Illink.Tasks.dll" />
+  <UsingTask TaskName="GenerateRoots" AssemblyFile="$(MSBuildThisFileDirectory)../tools/Illink.Tasks.dll" />
+  <UsingTask TaskName="DepsJsonLinker" AssemblyFile="$(MSBuildThisFileDirectory)../tools/Illink.Tasks.dll" />
+  <UsingTask TaskName="CompareAssemblySizes" AssemblyFile="$(MSBuildThisFileDirectory)../tools/Illink.Tasks.dll" />
+
+  <PropertyGroup>
+    <!-- TODO: Test this logic in all of the scenarios we end up supporting. -->
+    <LinkDirName Condition=" '$(LinkDirName)' == '' ">linked</LinkDirName>
+    <LinkDir Condition=" '$(LinkDir)' == '' and '$(AppendRuntimeIdentifierToOutputPath)' != 'true' and '$(RuntimeIdentifier)' != '' and '$(_UsingDefaultRuntimeIdentifier)' != 'true' ">$(OutputPath)$(RuntimeIdentifier)\$(LinkDirName)\</LinkDir>
+    <LinkDir Condition=" '$(LinkDir)' == '' ">$(OutputPath)$(LinkDirName)\</LinkDir>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <SingleRootXmlFileName Condition=" '$(SingleRootXmlFileName)' == '' ">$(AssemblyName)SingleRootAssembly.xml</SingleRootXmlFileName>
+    <SingleRootXmlFilePath Condition=" '$(SingleRootXmlFilePath)' == '' ">$(IntermediateOutputPath)$(SingleRootXmlFileName)</SingleRootXmlFilePath>
+  </PropertyGroup>
+
+  <!-- TODO: Split up this monolithic target into multiple smaller targets. -->
+  <Target Name="Link">
+
+    <Error Condition=" '$(LinkerMode)' == '' " Text="Linker mode not specified! Valid options are: sdk" />
+
+    <GenerateRoots AssetsFilePath="$(ProjectAssetsFile)"
+                   TargetFramework="$(TargetFrameworkMoniker)"
+                   RuntimeIdentifier="$(RuntimeIdentifier)"
+                   Publishdir="$(PublishDir)"
+                   SingleRootXmlFilePath="$(SingleRootXmlFilePath)"
+                   MainAssemblyName="$(AssemblyName)">
+      <Output ItemName="RootAssemblies" TaskParameter="RootAssemblies" />
+      <Output ItemName="ManagedPublishAssemblies" TaskParameter="PublishAssemblies" />
+      <Output ItemName="FrameworkAssemblies" TaskParameter="FrameworkAssemblies" />
+      <Output ItemName="UnmanagedFileAssets" TaskParameter="UnmanagedFileAssets" />
+    </GenerateRoots>
+
+    <Error Condition=" '$(CopyLocalLockFileAssemblies)' == 'true' "
+           Text="CopyLocalLockFileAssemblies was set. The link task doesn't know how to deal with this case yet." />
+
+    <ItemGroup>
+      <RootAssemblies Remove="$(AssemblyName)" />
+      <RootAssemblies Include="System.Private.CoreLib" />
+    </ItemGroup>
+
+    <PropertyGroup>
+      <LinkedAssembliesFileName Condition=" '$(LinkedAssembliesFileName)' == '' ">linked_assemblies.txt</LinkedAssembliesFileName>
+      <LinkedAssembliesFile Condition=" '$(LinkedAssembliesFile)' == '' ">$(IntermediateOutputPath)$(LinkedAssembliesFileName)</LinkedAssembliesFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <LinkerRootFiles Include="$(LinkerRootFiles)" />
+    </ItemGroup>
+
+    <Link InputAssemblies="@(RootAssemblies)"
+          AssemblyDirectory="$(PublishDir)"
+          OutputDirectory="$(LinkDir)"
+          RootDescriptorFiles="@(LinkerRootFiles);$(SingleRootXmlFilePath)"
+          LinkedAssembliesFile="$(LinkedAssembliesFile)"
+          LinkerDllPath="$(MSBUildThisFileDirectory)../tools/illink.dll"
+          LinkerMode="$(LinkerMode)" />
+
+    <ReadLinesFromFile File="$(LinkedAssembliesFile)">
+      <Output TaskParameter="Lines" ItemName="LinkedAssemblies" />
+    </ReadLinesFromFile>
+
+    <Message Text="Linker roots: $(SingleRootXmlFilePath);@(LinkerRootFiles)" />
+    <Message Text="Linker output assemblies: $(LinkedAssembliesFile)" />
+
+    <PropertyGroup>
+      <LinkDepsFilePath Condition=" '$(LinkDepsFilePath)' == '' ">$(LinkDir)$(ProjectDepsFileName)</LinkDepsFilePath>
+    </PropertyGroup>
+
+    <PropertyGroup>
+      <PublishDepsFilePath Condition=" '$(PublishDepsFilePath)' == '' ">$(PublishDir)$(ProjectDepsFileName)</PublishDepsFilePath>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PublishPathManagedAssemblies Include="@(ManagedPublishAssemblies->'$(PublishDir)%(Identity)')" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <RemainingPublishAssets Include="$(PublishDir)**\*" />
+      <RemainingPublishAssets Remove="@(PublishPathManagedAssemblies)" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(RemainingPublishAssets)" DestinationFiles="@(RemainingPublishAssets->'$(LinkDir)%(RecursiveDir)%(Filename)%(Extension)')" />
+
+    <!-- TODO: maybe don't overwrite deps.json in copy step so that we
+         don't need to do these in order? -->
+    <DepsJsonLinker InputDepsFilePath="$(PublishDepsFilePath)"
+                    OutputDepsFilePath="$(LinkDepsFilePath)"
+                    ManagedPublishAssemblies="@(ManagedPublishAssemblies)"
+                    KeptAssemblies="@(LinkedAssemblies->'%(Identity).dll')" />
+
+
+
+    <CompareAssemblySizes UnlinkedDir="$(PublishDir)" LinkedDir="$(LinkDir)" />
+  </Target>
+
+</Project>
