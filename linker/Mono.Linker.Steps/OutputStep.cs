@@ -28,6 +28,7 @@
 
 using System;
 using System.IO;
+using System.Collections.Generic;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -36,10 +37,18 @@ namespace Mono.Linker.Steps {
 
 	public class OutputStep : BaseStep {
 
+		private List<string> keptAssemblies;
+
 		protected override void Process ()
 		{
+			keptAssemblies = new List<string>();
 			CheckOutputDirectory ();
 			Annotations.SaveDependencies ();
+		}
+
+		protected override void EndProcess ()
+		{
+			OutputAssemblyListFile ();
 		}
 
 		void CheckOutputDirectory ()
@@ -55,6 +64,20 @@ namespace Mono.Linker.Steps {
 			OutputAssembly (assembly);
 		}
 
+		void OutputAssemblyListFile ()
+		{
+			var fileName = Context.OutputAssemblyListFile;
+			if (fileName != null)
+			{
+				using (StreamWriter file = new StreamWriter (fileName)) {
+					foreach (var a in keptAssemblies)
+					{
+						file.WriteLine (a);
+					}
+				}
+			}
+		}
+
 		void OutputAssembly (AssemblyDefinition assembly)
 		{
 			string directory = Context.OutputDirectory;
@@ -65,10 +88,12 @@ namespace Mono.Linker.Steps {
 			case AssemblyAction.Save:
 			case AssemblyAction.Link:
 				Context.Annotations.AddDependency (assembly);
+				keptAssemblies.Add (assembly.Name.Name);
 				assembly.Write (GetAssemblyFileName (assembly, directory), SaveSymbols (assembly));
 				break;
 			case AssemblyAction.Copy:
 				Context.Annotations.AddDependency (assembly);
+				keptAssemblies.Add (assembly.Name.Name);
 				CloseSymbols (assembly);
 				CopyAssembly (GetOriginalAssemblyFileInfo (assembly), directory, Context.LinkSymbols);
 				break;

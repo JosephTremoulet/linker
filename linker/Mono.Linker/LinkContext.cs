@@ -41,6 +41,7 @@ namespace Mono.Linker {
 		AssemblyAction _coreAction;
 		Hashtable _actions;
 		string _outputDirectory;
+		string _outputAssemblyListFile;
 		bool _fullAssemblyOnlyRemoval;
 		Hashtable _parameters;
 		bool _linkSymbols;
@@ -65,6 +66,11 @@ namespace Mono.Linker {
 		public string OutputDirectory {
 			get { return _outputDirectory; }
 			set { _outputDirectory = value; }
+		}
+
+		public string OutputAssemblyListFile {
+			get { return _outputAssemblyListFile; }
+			set { _outputAssemblyListFile = value; }
 		}
 
 		public bool FullAssemblyOnlyRemoval

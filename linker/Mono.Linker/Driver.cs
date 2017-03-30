@@ -166,6 +166,9 @@ namespace Mono.Linker {
 					if (!bool.Parse (GetParam ()))
 						p.RemoveStep (typeof (RegenerateGuidStep));
 					break;
+				case 'k':
+					context.OutputAssemblyListFile = GetParam ();
+					break;
 				default:
 					Usage ("Unknown option: `" + token [1] + "'");
 					break;
@@ -305,6 +308,7 @@ namespace Mono.Linker {
 			Console.WriteLine ("   -a          Link from a list of assemblies");
 			Console.WriteLine ("   -r          Link from a list of assemblies using roots visible outside of the assembly");
 			Console.WriteLine ("   -i          Link from an mono-api-info descriptor");
+			Console.WriteLine ("   -k          Specify a file in which to write the list of kept assemblies");
 			Console.WriteLine ("");
 
 			Environment.Exit (1);
