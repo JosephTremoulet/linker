@@ -125,7 +125,7 @@ namespace Mono.Linker.GenerateRoots
 			rootLibs = publishLibs.Except(frameworkLibs).ToList();
 
 			PopulateOutputItems();
-                                                
+
 			return true;
 		}
 

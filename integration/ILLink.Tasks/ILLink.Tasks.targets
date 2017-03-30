@@ -1,9 +1,14 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
-  <UsingTask TaskName="Link" AssemblyFile="$(MSBuildThisFileDirectory)../tools/Illink.Tasks.dll" />
-  <UsingTask TaskName="GenerateRoots" AssemblyFile="$(MSBuildThisFileDirectory)../tools/Illink.Tasks.dll" />
-  <UsingTask TaskName="DepsJsonLinker" AssemblyFile="$(MSBuildThisFileDirectory)../tools/Illink.Tasks.dll" />
-  <UsingTask TaskName="CompareAssemblySizes" AssemblyFile="$(MSBuildThisFileDirectory)../tools/Illink.Tasks.dll" />
+  <PropertyGroup>
+    <LinkTaskDllPath Condition=" '$(LinkTaskDllPath)' == '' ">$(MSBuildThisFileDirectory)../tools/$(TargetFramework)/ILLink.Tasks.dll</LinkTaskDllPath>
+    <LinkerDllPath Condition=" '$(LinkerDllPath)' == '' ">$(MSBuildThisFileDirectory)../tools/$(TargetFramework)/illink.dll</LinkerDllPath>
+  </PropertyGroup>
+
+  <UsingTask TaskName="Link" AssemblyFile="$(LinkTaskDllPath)" />
+  <UsingTask TaskName="GenerateRoots" AssemblyFile="$(LinkTaskDllPath)" />
+  <UsingTask TaskName="DepsJsonLinker" AssemblyFile="$(LinkTaskDllPath)" />
+  <UsingTask TaskName="CompareAssemblySizes" AssemblyFile="$(LinkTaskDllPath)" />
 
   <PropertyGroup>
     <!-- TODO: Test this logic in all of the scenarios we end up supporting. -->
@@ -56,7 +61,7 @@
           OutputDirectory="$(LinkDir)"
           RootDescriptorFiles="@(LinkerRootFiles);$(SingleRootXmlFilePath)"
           LinkedAssembliesFile="$(LinkedAssembliesFile)"
-          LinkerDllPath="$(MSBUildThisFileDirectory)../tools/illink.dll"
+          LinkerDllPath="$(LinkerDllPath)"
           LinkerMode="$(LinkerMode)" />
 
     <ReadLinesFromFile File="$(LinkedAssembliesFile)">

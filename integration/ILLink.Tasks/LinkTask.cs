@@ -15,6 +15,8 @@ namespace Sample.LinkTask
 		public string CoreAssembliesAction { get; set; }
 		public ITaskItem[] RootDescriptorFiles { get; set; }
 		public ITaskItem LinkedAssembliesFile { get; set; }
+
+		[Required]
 		public ITaskItem LinkerDllPath { get; set; }
 
 		[Output]

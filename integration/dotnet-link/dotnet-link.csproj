@@ -1,16 +1,47 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp1.0</TargetFramework>
     <VersionPrefix>0.1.0-preview</VersionPrefix>
     <PackageOutputPath>../nupkgs</PackageOutputPath>
     <NuspecFile>dotnet-link.nuspec</NuspecFile>
-    <NuspecProperties>id=$(AssemblyName);version=$(VersionPrefix);authors=$(AssemblyName);description=dotnet-link cli tool;tfm=$(TargetFramework)</NuspecProperties>
+    <NuspecProperties>id=$(AssemblyName);version=$(VersionPrefix);authors=$(AssemblyName);description=dotnet-link cli tool;tfm=$(TargetFramework);</NuspecProperties>
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- We want to package dotnet-link with this dependency and
+         prevent it from being marked as a package dependency. This
+         simplifies the acquisition experience by preventing consumers
+         of dotnet-link from having to add corefxlab as a package
+         source.
+
+         The pack targets were not designed to include package
+         references, so we work around this by packaging the publish
+         directory. We make pack depend on publish below, and include
+         the publish output in the package.
+
+         To prevent this package reference from being marked as a
+         package dependency, we should be able to use
+         PrivateAssets="All". However, this is not necessary because
+         we are using a custom .nuspec.
+
+         TODO: We may be able to use a generated .nuspec by setting
+         PrivateAssets="All" and including the publish output files in
+         some itemgroups that get packed.
+    -->
     <PackageReference Include="System.CommandLine" Version="0.1.0-e161108-1" />
   </ItemGroup>
 
+  <!-- To package this with its dependencies, we want to pack the
+       publish directory. -->
+  <!-- Make pack depend on publish, and pass the publish path as a
+       nuspec property. -->
+  <PropertyGroup>
+    <GenerateNuspecDependsOn>Publish;SetOutputPathNuspecProperty;$(GenerateNuspecDependsOn)</GenerateNuspecDependsOn>
+  </PropertyGroup>
+  <Target Name="SetOutputPathNuspecProperty">
+    <PropertyGroup>
+      <NuspecProperties>$(NuspecProperties)output=$(PublishDir);</NuspecProperties>
+    </PropertyGroup>
+  </Target>
 </Project>

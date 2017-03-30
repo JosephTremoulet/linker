@@ -78,7 +78,6 @@ namespace DepsJsonLinker
 							string runtimeFileName = runtime.Name.Substring (runtime.Name.LastIndexOf ('/') + 1);
 
 							if (removedAssembliesSet.Contains (runtimeFileName)) {
-                                                               //Log.LogMessage($"removing runtime {runtime.ToString()}", MessageImportance.High);
 								runtime.Remove ();
 								j--;
 								continue;
