@@ -43,7 +43,7 @@
     <!-- TODO: Remove the custom .nuspec once the P2P PrivateAssets
          issue is fixed. -->
    <NuspecFile>ILLink.Tasks.nuspec</NuspecFile>
-    <NuspecProperties>id=$(AssemblyName);version=$(VersionPrefix);authors=$(AssemblyName);description=linker tasks;tfm=$(TargetFramework);</NuspecProperties>
+    <NuspecProperties>id=$(AssemblyName);authors=$(AssemblyName);description=linker tasks;tfm=$(TargetFramework);</NuspecProperties>
   </PropertyGroup>
 
   <!-- TODO: Remove this workaround once we're able to avoid using a
@@ -54,7 +54,8 @@
        nuspec properties, because the project's output path gets set
        at a later point. To work around this, we add the output path
        to the nuspec properties dynamically as part of the pack
-       target.
+       target. We use the same workaround to set the version in the
+       .nuspec file.
 
        We can't insert this into the pack target by modifying
        PackDependsOn, since GenerateNuspec is always prepended to
@@ -64,11 +65,11 @@
        Instead, we use GenerateNuspecDependsOn. We could probably also
        use BeforeTargets="GenerateNuspec". -->
   <PropertyGroup>
-    <GenerateNuspecDependsOn>Publish;SetOutputPathNuspecProperty;$(GenerateNuspecDependsOn)</GenerateNuspecDependsOn>
+    <GenerateNuspecDependsOn>Publish;SetDynamicNuspecProperties;$(GenerateNuspecDependsOn)</GenerateNuspecDependsOn>
   </PropertyGroup>
-  <Target Name="SetOutputPathNuspecProperty">
+  <Target Name="SetDynamicNuspecProperties">
     <PropertyGroup>
-      <NuspecProperties>$(NuspecProperties)output=$(PublishDir);</NuspecProperties>
+      <NuspecProperties>$(NuspecProperties)output=$(PublishDir);version=$(Version);</NuspecProperties>
     </PropertyGroup>
   </Target>
 

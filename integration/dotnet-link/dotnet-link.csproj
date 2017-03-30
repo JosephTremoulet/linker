@@ -5,7 +5,7 @@
     <VersionPrefix>0.1.0-preview</VersionPrefix>
     <PackageOutputPath>../nupkgs</PackageOutputPath>
     <NuspecFile>dotnet-link.nuspec</NuspecFile>
-    <NuspecProperties>id=$(AssemblyName);version=$(VersionPrefix);authors=$(AssemblyName);description=dotnet-link cli tool;tfm=$(TargetFramework);</NuspecProperties>
+    <NuspecProperties>id=$(AssemblyName);authors=$(AssemblyName);description=dotnet-link cli tool;tfm=$(TargetFramework);</NuspecProperties>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,13 +35,14 @@
   <!-- To package this with its dependencies, we want to pack the
        publish directory. -->
   <!-- Make pack depend on publish, and pass the publish path as a
-       nuspec property. -->
+       nuspec property. Also pass the computed version
+       information. -->
   <PropertyGroup>
-    <GenerateNuspecDependsOn>Publish;SetOutputPathNuspecProperty;$(GenerateNuspecDependsOn)</GenerateNuspecDependsOn>
+    <GenerateNuspecDependsOn>Publish;SetDynamicNuspecProperties;$(GenerateNuspecDependsOn)</GenerateNuspecDependsOn>
   </PropertyGroup>
-  <Target Name="SetOutputPathNuspecProperty">
+  <Target Name="SetDynamicNuspecProperties">
     <PropertyGroup>
-      <NuspecProperties>$(NuspecProperties)output=$(PublishDir);</NuspecProperties>
+      <NuspecProperties>$(NuspecProperties)output=$(PublishDir);version=$(Version);</NuspecProperties>
     </PropertyGroup>
   </Target>
 </Project>
