@@ -124,7 +124,7 @@
       <Name>Mono.Cecil</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup Condition=" $(Configuration.StartsWith('netcore'))">
+  <ItemGroup Condition=" $(NetCoreBuild) ">
     <ProjectReference Include="..\cecil\symbols\pdb\Mono.Cecil.Pdb.csproj">
       <SetConfiguration Condition=" '$(Configuration)' == 'netcore_Debug' ">Configuration=netstandard_Debug</SetConfiguration>
       <SetConfiguration Condition=" '$(Configuration)' == 'netcore_Release' ">Configuration=netstandard_Release</SetConfiguration>

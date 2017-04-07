@@ -10,12 +10,11 @@ if ((Test-Path $bootStrapperPath) -eq 0)
         mkdir $toolsLocalPath | Out-Null
     }
 
-    cp "bootstrap.ps1" $bootStrapperPath
+    cp (Join-Path $PSScriptRoot "bootstrap.ps1") $bootStrapperPath
 }
 
-
 # now execute it
-& $bootStrapperPath (Get-Location) $toolsLocalPath | Out-File (Join-Path (Get-Location) "bootstrap.log")
+& $bootStrapperPath $PSScriptRoot $toolsLocalPath | Out-File (Join-Path $PSScriptRoot "bootstrap.log")
 if ($LastExitCode -ne 0)
 {
     Write-Output "Boot-strapping failed with exit code $LastExitCode, see bootstrap.log for more information."
@@ -24,6 +23,5 @@ if ($LastExitCode -ne 0)
 
 # execute the tool using the dotnet.exe host
 $dotNetExe = Join-Path $toolsLocalPath "dotnetcli\dotnet.exe"
-$runExe = Join-Path $toolsLocalPath "Microsoft.DotNet.BuildTools.Run\netcoreapp1.0\run.exe"
-& $dotNetExe $runExe $args
+& $dotNetExe $args
 exit $LastExitCode
