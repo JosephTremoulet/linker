@@ -122,7 +122,7 @@ namespace Mono.Linker.GenerateRoots
 			// TODO: make this a separate msbuild task
 			GetFrameworkLibraries();
 
-			rootLibs = publishLibs.Except(frameworkLibs).ToList();
+			rootLibs = publishLibs.Select(l => Path.GetFileName(l)).Except(frameworkLibs).ToList();
 
 			PopulateOutputItems();
 
