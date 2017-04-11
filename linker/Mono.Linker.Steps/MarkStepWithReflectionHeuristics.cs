@@ -64,7 +64,7 @@ namespace Mono.Linker.Steps {
 							hasMarkedInstanceMember = true;
 						}
 
-						if (IsConstructor (method)) {
+						if (IsInstanceConstructor (method)) {
 							hasMarkedConstructors = true;
 						}
 
@@ -85,7 +85,7 @@ namespace Mono.Linker.Steps {
 					}
 
 					if (hasMarkedInstanceMember) {
-						MarkMethodsIf (type.Methods, IsConstructorPredicate);
+						MarkMethodsIf (type.Methods, IsInstanceConstructor);
 					}
 				}
 

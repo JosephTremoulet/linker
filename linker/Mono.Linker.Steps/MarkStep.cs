@@ -525,7 +525,7 @@ namespace Mono.Linker.Steps {
 		protected virtual void MarkSerializable (TypeDefinition type)
 		{
 			MarkDefaultConstructor (type);
-			MarkMethodsIf (type.Methods, IsSpecialSerializationConstructorPredicate);
+			MarkMethodsIf (type.Methods, IsSpecialSerializationConstructor);
 		}
 
 		protected virtual TypeDefinition MarkType (TypeReference reference)
@@ -585,7 +585,7 @@ namespace Mono.Linker.Steps {
 
 			if (type.HasMethods) {
 				MarkMethodsIf (type.Methods, IsVirtualAndHasPreservedParent);
-				MarkMethodsIf (type.Methods, IsStaticConstructorPredicate);
+				MarkMethodsIf (type.Methods, IsStaticConstructor);
 				MarkMethodsIf (type.Methods, HasSerializationAttribute);
 			}
 
@@ -601,7 +601,7 @@ namespace Mono.Linker.Steps {
 		}
 
 		// Allow subclassers to mark additional things in the main processing loop
-		protected virtual void DoAdditionalProcessing()
+		protected virtual void DoAdditionalProcessing ()
 		{
 		}
 
@@ -832,11 +832,9 @@ namespace Mono.Linker.Steps {
 			return false;
 		}
 
-		static MethodPredicate IsSpecialSerializationConstructorPredicate = new MethodPredicate (IsSpecialSerializationConstructor);
-
 		static bool IsSpecialSerializationConstructor (MethodDefinition method)
 		{
-			if (!IsConstructor (method))
+			if (!IsInstanceConstructor (method))
 				return false;
 
 			var parameters = method.Parameters;
@@ -847,9 +845,7 @@ namespace Mono.Linker.Steps {
 				parameters [1].ParameterType.Name == "StreamingContext";
 		}
 
-		protected delegate bool MethodPredicate (MethodDefinition method);
-
-		protected void MarkMethodsIf (ICollection methods, MethodPredicate predicate)
+		protected void MarkMethodsIf (ICollection methods, Func<MethodDefinition, bool> predicate)
 		{
 			foreach (MethodDefinition method in methods)
 				if (predicate (method)) {
@@ -859,16 +855,12 @@ namespace Mono.Linker.Steps {
 				}
 		}
 
-		static MethodPredicate IsDefaultConstructorPredicate = new MethodPredicate (IsDefaultConstructor);
-
 		static bool IsDefaultConstructor (MethodDefinition method)
 		{
-			return IsConstructor (method) && !method.HasParameters;
+			return IsInstanceConstructor (method) && !method.HasParameters;
 		}
 
-		protected static MethodPredicate IsConstructorPredicate = new MethodPredicate (IsConstructor);
-
-		protected static bool IsConstructor (MethodDefinition method)
+		protected static bool IsInstanceConstructor (MethodDefinition method)
 		{
 			return method.IsConstructor && !method.IsStatic;
 		}
@@ -878,10 +870,8 @@ namespace Mono.Linker.Steps {
 			if ((type == null) || !type.HasMethods)
 				return;
 
-			MarkMethodsIf (type.Methods, IsDefaultConstructorPredicate);
+			MarkMethodsIf (type.Methods, IsDefaultConstructor);
 		}
-
-		static MethodPredicate IsStaticConstructorPredicate = new MethodPredicate (IsStaticConstructor);
 
 		static bool IsStaticConstructor (MethodDefinition method)
 		{
