@@ -9,6 +9,5 @@
   <files>
     <file src="ILLink.Tasks.targets" target="build" />
     <file src="$output$*.dll" target="tools/$tfm$" />
-    <file src="$linkerDir$\*" target="tools/$tfm$" />
   </files>
 </package>

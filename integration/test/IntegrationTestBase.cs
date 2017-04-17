@@ -77,29 +77,22 @@ namespace ILLink.Tests
 			string config = context.Configuration;
 			string demoRoot = Path.GetDirectoryName(csproj);
 
-			int ret = Dotnet($"restore -r {rid}", demoRoot, null);
+			int ret = Dotnet($"restore -r {rid}", demoRoot);
 			if (ret != 0) {
 				output.WriteLine("restore failed");
 				Assert.True(false);
 				return;
 			}
 
-			ret = Dotnet($"publish -r {rid} -c {config}", demoRoot, null);
-			if (ret != 0) {
-				output.WriteLine("publish failed");
-				Assert.True(false);
-				return;
-			}
-
-			string args = $"msbuild /t:Link /p:LinkerMode=sdk /p:RuntimeIdentifier={rid} /p:Configuration={config} /v:n";
+			string publishArgs = $"publish -r {rid} -c {config} /v:n /p:ShowLinkerSizeComparison=true";
 			string rootFilesStr;
 			if (rootFiles != null && rootFiles.Any()) {
 				rootFilesStr = String.Join(";", rootFiles);
-				args += $" /p:LinkerRootFiles={rootFilesStr}";
+				publishArgs += $" /p:LinkerRootDescriptors={rootFilesStr}";
 			}
-			ret = Dotnet(args, demoRoot, null);
+			ret = Dotnet(publishArgs, demoRoot);
 			if (ret != 0) {
-				output.WriteLine("link failed");
+				output.WriteLine("publish failed");
 				Assert.True(false);
 				return;
 			}
