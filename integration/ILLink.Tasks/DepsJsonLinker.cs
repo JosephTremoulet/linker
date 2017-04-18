@@ -7,11 +7,19 @@ using System.IO;
 using Microsoft.Build.Utilities;
 using Microsoft.Build.Framework;
 
-namespace DepsJsonLinker
+namespace ILLink.Tasks
 {
+	/// <summary>
+	///   This class exists as a workaround. It strips the publish
+	///   dependency file of assemblies excluded from the publish
+	///   output by the linker. Ideally we would pass appropriate
+	///   parameters to the task that generates the deps file in
+	///   the first place, instead of rewriting it. We may be
+	///   ablee to do this once
+	///   https://github.com/dotnet/sdk/pull/1052 is merged.
+	/// </summary>
 	public class DepsJsonLinker : Task
 	{
-
 		[Required]
 		public ITaskItem InputDepsFilePath { get; set; }
 
@@ -23,8 +31,6 @@ namespace DepsJsonLinker
 
 		[Required]
 		public ITaskItem[] KeptAssemblies { get; set; }
-
-		public ITaskItem[] RemovedAssemblies { get; set; }
 
 
 		public override bool Execute()

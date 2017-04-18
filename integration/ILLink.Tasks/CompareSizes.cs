@@ -7,7 +7,7 @@ using System.Reflection;
 using Microsoft.Build.Utilities;
 using Microsoft.Build.Framework;
 
-namespace CompareAssemblySizes
+namespace ILLink.Tasks
 {
 	struct AssemblySizes
 	{
@@ -16,19 +16,24 @@ namespace CompareAssemblySizes
 	}
 	public class CompareAssemblySizes : Task
 	{
+		/// <summary>
+		///   Paths to managed assemblies before linking.
+		/// </summary>
 		[Required]
-		public ITaskItem UnlinkedDir { get; set; }
+		public ITaskItem[] UnlinkedAssemblies { get; set; }
 
+		/// <summary>
+		///   Paths to managed assemblies after linking. These
+		///   assembly names should be a subset of the
+		///   assembly names in UnlinkedAssemblies.
+		/// </summary>
 		[Required]
-		public ITaskItem LinkedDir { get; set; }
+		public ITaskItem[] LinkedAssemblies { get; set; }
 
 		public override bool Execute()
 		{
-			string unlinkedDir = UnlinkedDir.ItemSpec;
-			string linkedDir = LinkedDir.ItemSpec;
-
-			string[] unlinkedFiles = Directory.GetFiles (unlinkedDir);
-			string[] linkedFiles = Directory.GetFiles (linkedDir);
+			string[] unlinkedFiles = UnlinkedAssemblies.Select (i => i.ItemSpec).ToArray();
+			string[] linkedFiles = LinkedAssemblies.Select (i => i.ItemSpec).ToArray();
 
 			Dictionary<string, AssemblySizes> sizes = new Dictionary<string, AssemblySizes> ();
 
@@ -56,20 +61,15 @@ namespace CompareAssemblySizes
 					continue;
 				}
 				string fileName = Path.GetFileName (linkedFile);
+				if (!sizes.ContainsKey(fileName)) {
+					Console.WriteLine ($"{linkedFile} was specified as an assembly kept by the linker, but {fileName} was not specified as a managed publish assembly.");
+					continue;
+				}
 				AssemblySizes assemblySizes = sizes[fileName];
 				assemblySizes.linkedSize = new System.IO.FileInfo (linkedFile).Length;
 				totalLinked += assemblySizes.linkedSize;
 				sizes[fileName] = assemblySizes;
 			}
-
-			long unlinkedDirSize = DirSize (new DirectoryInfo (unlinkedDir));
-			long linkedDirSize = DirSize (new DirectoryInfo (linkedDir));
-
-			Console.WriteLine ("{0, -60} {1,-20:N0} {2, -20:N0} {3, -10:P}",
-				"Total directory size",
-				unlinkedDirSize,
-				linkedDirSize,
-				((double)unlinkedDirSize - (double)linkedDirSize) / (double)unlinkedDirSize);
 
 			Console.WriteLine ("{0, -60} {1,-20:N0} {2, -20:N0} {3, -10:P}",
 				"Total size of assemblies",
