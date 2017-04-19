@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
    <PropertyGroup>
-    <VersionPrefix>0.1.2-preview</VersionPrefix>
+    <VersionPrefix>0.1.3-preview</VersionPrefix>
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <RuntimeFrameworkVersion>2.0.0-beta-001509-00</RuntimeFrameworkVersion>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
@@ -45,23 +45,6 @@
     <NuspecProperties>id=$(AssemblyName);authors=$(AssemblyName);description=linker tasks;tfm=$(TargetFramework);</NuspecProperties>
   </PropertyGroup>
 
-  <!-- TODO: remove this once we reference the linker directly.  The
-       current version of the package expects illink to exist in the
-       tools directory, so that the task can invoke it using "dotnet
-       illink". To make this work we need to include the publish
-       output (including the deps.json) of the linker, so we publish
-       it before building the tasks package. This assumes that the
-       linker has already been restored, which is always the case when
-       building from the solution. -->
-  <PropertyGroup>
-    <LinkerPublishDir>linker</LinkerPublishDir>
-  </PropertyGroup>
-  <Target Name="PublishLinker">
-    <MSBuild Projects="../../linker/Mono.Linker.csproj"
-             Targets="Publish"
-             Properties="PublishDir=$(MSBuildThisFileDirectory)$(LinkerPublishDir);Configuration=netcore_Release" />
-  </Target>
-
   <!-- TODO: Remove this workaround once we're able to avoid using a
        custom .nuspec. We may still need a similar workaround to
        dynamically include the publish output in the package contents.
@@ -81,11 +64,11 @@
        Instead, we use GenerateNuspecDependsOn. We could probably also
        use BeforeTargets="GenerateNuspec". -->
   <PropertyGroup>
-    <GenerateNuspecDependsOn>PublishLinker;Publish;SetDynamicNuspecProperties;$(GenerateNuspecDependsOn)</GenerateNuspecDependsOn>
+    <GenerateNuspecDependsOn>Publish;SetDynamicNuspecProperties;$(GenerateNuspecDependsOn)</GenerateNuspecDependsOn>
   </PropertyGroup>
   <Target Name="SetDynamicNuspecProperties">
     <PropertyGroup>
-      <NuspecProperties>$(NuspecProperties)output=$(PublishDir);linkerDir=$(LinkerPublishDir);version=$(Version);</NuspecProperties>
+      <NuspecProperties>$(NuspecProperties)output=$(PublishDir);version=$(Version);</NuspecProperties>
     </PropertyGroup>
   </Target>
 
@@ -148,13 +131,7 @@
          use PrivateAssets="All" to prevent this project reference
          from being marked as a dependency of the tasks package (while
          still including it in the publish output). -->
-    <!-- TODO: add back this ProjectReference once we invoke the
-         linker directly and need it as a reference. For now, we want
-         to separately publish the linker and include it in the
-         package. -->
-    <!--
-        <ProjectReference Include="../../linker/Mono.Linker.csproj" />
-    -->
+    <ProjectReference Include="../../linker/Mono.Linker.csproj" />
       <!-- SetConfiguration isn't required when the configuration is
            already set in the solution. However, it should be possible
            to set it here to allow packing the tasks csproj on its
