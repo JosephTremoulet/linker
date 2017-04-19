@@ -18,7 +18,7 @@ namespace ILLink.Tests
 			}
 
 			Directory.CreateDirectory(projectRoot);
-			int ret = RunCommand("dotnet", "new webapi", projectRoot);
+			int ret = Dotnet("new webapi", projectRoot);
 			if (ret != 0) {
 				output.WriteLine("dotnet new failed");
 				Assert.True(false);

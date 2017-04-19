@@ -55,18 +55,36 @@ namespace ILLink.Tests
 		{
 			var packageName = "ILLink.Tasks";
 			var packageSource = "../../../../nupkgs";
-			var tasksPackage = Directory.GetFiles(packageSource)
+			var tasksPackages = Directory.GetFiles(packageSource)
 				.Where(p => Path.GetExtension(p) == ".nupkg")
 				.Select(p => Path.GetFileNameWithoutExtension(p))
-				.Where(p => p.StartsWith(packageName))
-				.Single();
+				.Where(p => p.StartsWith(packageName));
+			var nPackages = tasksPackages.Count();
+			if (nPackages > 1) {
+				throw new Exception($"duplicate {packageName} packages in {packageSource}");
+			} else if (nPackages == 0) {
+				throw new Exception($"{packageName} package not found in {packageSource}");
+			}
+			var tasksPackage = tasksPackages.Single();
 			var version = tasksPackage.Remove(0, packageName.Length + 1);
+			var dotnetDir = "../../../../../corebuild/Tools/dotnetcli";
+			var dotnetToolNames = Directory.GetFiles(dotnetDir)
+				.Select(p => Path.GetFileName(p))
+				.Where(p => p.Contains("dotnet"));
+			var nTools = dotnetToolNames.Count();
+			if (nTools > 1) {
+				throw new Exception($"multiple dotnet tools in {dotnetDir}");
+			} else if (nTools == 0) {
+				throw new Exception($"no dotnet tool found in {dotnetDir}");
+			}
+			var dotnetToolName = dotnetToolNames.Single();
+			var dotnetToolPath = Path.Combine(dotnetDir, dotnetToolName);
 
 			var context = new TestContext();
 			context.PackageSource = packageSource;
 			context.TasksPackageName = packageName;
 			context.TasksPackageVersion = version;
-			context.DotnetToolPath = "../../../../../corebuild/dotnet.sh";
+			context.DotnetToolPath = dotnetToolPath;
 			// This sets the RID to the RID of the currently-executing system.
 			context.RuntimeIdentifier = RuntimeEnvironment.GetRuntimeIdentifier();
 			// We want to build and link integration projects in the
