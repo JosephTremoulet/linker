@@ -26,7 +26,7 @@ namespace ILLink.Tests
 			this.context = TestContext.CreateDefaultContext();
 		}
 
-		private int Dotnet(string args, string workingDir, string additionalPath = null)
+		protected int Dotnet(string args, string workingDir, string additionalPath = null)
 		{
 			return RunCommand(context.DotnetToolPath, args, workingDir, additionalPath);
 		}

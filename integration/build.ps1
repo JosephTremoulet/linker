@@ -3,6 +3,7 @@ If (Test-Path $tasksFolder) {
   Remove-Item -r $tasksFolder
 }
 
+$dotNetTool = Join-Path $PSScriptRoot "..\corebuild\dotnet.ps1"
 # create integration packages
-dotnet restore
-dotnet pack
+& $dotNetTool restore (Join-Path $PSScriptRoot "linker.sln")
+& $dotNetTool pack (Join-Path $PSScriptRoot "linker.sln")

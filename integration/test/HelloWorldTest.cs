@@ -18,7 +18,7 @@ namespace ILLink.Tests
 			}
 
 			Directory.CreateDirectory(projectRoot);
-			int ret = RunCommand("dotnet", "new console", projectRoot, null);
+			int ret = Dotnet("new console", projectRoot);
 			if (ret != 0) {
 				output.WriteLine("dotnet new failed");
 				Assert.True(false);

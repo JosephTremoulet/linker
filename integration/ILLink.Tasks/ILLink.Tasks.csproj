@@ -85,7 +85,7 @@
   </PropertyGroup>
   <Target Name="SetDynamicNuspecProperties">
     <PropertyGroup>
-      <NuspecProperties>$(NuspecProperties)output=$(PublishDir);linkerDir=$(linkerPublishDir);version=$(Version);</NuspecProperties>
+      <NuspecProperties>$(NuspecProperties)output=$(PublishDir);linkerDir=$(LinkerPublishDir);version=$(Version);</NuspecProperties>
     </PropertyGroup>
   </Target>
 
