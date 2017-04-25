@@ -30,10 +30,6 @@ namespace ILLink.Tests
 			string nugetConfig = Path.Combine("JitBench", "NuGet.config");
 			AddLocalNugetFeedAfterClear(nugetConfig);
 
-			// Remove the crossgen target, which doesn't work properly
-			// on linux.
-			RemoveCrossgenTarget(csproj);
-
 			AddLinkerReference(csproj);
 
 			BuildAndLink(csproj, rootFiles);
@@ -77,22 +73,6 @@ namespace ILLink.Tests
 		{
 			foreach (var rf in rootFiles) {
 				File.Copy(rf, Path.Combine(demoRoot, rf));
-			}
-		}
-
-		void RemoveCrossgenTarget(string csproj)
-		{
-			var xdoc = XDocument.Load(csproj);
-			var ns = xdoc.Root.GetDefaultNamespace();
-
-			var target = xdoc.Root.Element(ns + "Target");
-
-			output.WriteLine("removing target");
-			output.WriteLine(target.ToString());
-			target.Remove();
-
-			using (var fs = new FileStream(csproj, FileMode.Create)) {
-				xdoc.Save(fs);
 			}
 		}
 
