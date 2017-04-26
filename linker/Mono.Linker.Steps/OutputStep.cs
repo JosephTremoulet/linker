@@ -46,11 +46,6 @@ namespace Mono.Linker.Steps {
 			Annotations.SaveDependencies ();
 		}
 
-		protected override void EndProcess ()
-		{
-			OutputAssemblyListFile ();
-		}
-
 		void CheckOutputDirectory ()
 		{
 			if (Directory.Exists (Context.OutputDirectory))
@@ -62,20 +57,6 @@ namespace Mono.Linker.Steps {
 		protected override void ProcessAssembly (AssemblyDefinition assembly)
 		{
 			OutputAssembly (assembly);
-		}
-
-		void OutputAssemblyListFile ()
-		{
-			var fileName = Context.OutputAssemblyListFile;
-			if (fileName != null)
-			{
-				using (StreamWriter file = new StreamWriter (fileName)) {
-					foreach (var a in keptAssemblies)
-					{
-						file.WriteLine (a);
-					}
-				}
-			}
 		}
 
 		void OutputAssembly (AssemblyDefinition assembly)

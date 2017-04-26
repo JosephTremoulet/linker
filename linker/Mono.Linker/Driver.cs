@@ -165,9 +165,6 @@ namespace Mono.Linker {
 					if (!bool.Parse (GetParam ()))
 						p.RemoveStep (typeof (RegenerateGuidStep));
 					break;
-				case 'k':
-					context.OutputAssemblyListFile = GetParam ();
-					break;
 				case 'v':
 					context.KeepMembersForDebuggerAttributes = bool.Parse (GetParam ());
 					break;
