@@ -110,10 +110,7 @@
       <LogicalName>System.Core.xml</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
-
-  
   <ItemGroup>
-    <None Include="Makefile" />
     <None Include="README" />
   </ItemGroup>
   <ItemGroup>

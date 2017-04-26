@@ -1,4 +1,4 @@
-//
+﻿//
 // MarkStep.cs
 //
 // Author:
@@ -28,20 +28,23 @@
 //
 
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using Mono.Collections.Generic;
 
 namespace Mono.Linker.Steps {
 
 	public class MarkStep : IStep {
 
 		protected LinkContext _context;
-		protected Queue _methods;
-		protected ArrayList _virtual_methods;
+		protected Queue<MethodDefinition> _methods;
+		protected List<MethodDefinition> _virtual_methods;
+		protected Dictionary<TypeDefinition, CustomAttribute> _assemblyDebuggerDisplayAttributes;
+		protected Dictionary<TypeDefinition, CustomAttribute> _assemblyDebuggerTypeProxyAttributes;
 
 		public AnnotationStore Annotations {
 			get { return _context.Annotations; }
@@ -49,8 +52,11 @@ namespace Mono.Linker.Steps {
 
 		public MarkStep ()
 		{
-			_methods = new Queue ();
-			_virtual_methods = new ArrayList ();
+			_methods = new Queue<MethodDefinition> ();
+			_virtual_methods = new List<MethodDefinition> ();
+
+			_assemblyDebuggerDisplayAttributes = new Dictionary<TypeDefinition, CustomAttribute> ();
+			_assemblyDebuggerTypeProxyAttributes = new Dictionary<TypeDefinition, CustomAttribute> ();
 		}
 
 		public virtual void Process (LinkContext context)
@@ -100,7 +106,7 @@ namespace Mono.Linker.Steps {
 					MarkField (field);
 		}
 
-		void InitializeMethods (ICollection methods)
+		void InitializeMethods (Collection<MethodDefinition> methods)
 		{
 			foreach (MethodDefinition method in methods)
 				if (Annotations.IsMarked (method))
@@ -153,12 +159,12 @@ namespace Mono.Linker.Steps {
 		void ProcessQueue ()
 		{
 			while (!QueueIsEmpty ()) {
-				MethodDefinition method = (MethodDefinition) _methods.Dequeue ();
+				MethodDefinition method = _methods.Dequeue ();
 				Annotations.Push (method);
 				try {
 					ProcessMethod (method);
 				} catch (Exception e) {
-					throw new MarkException (string.Format ("Error processing method: '{0}' in assembly: '{1}'", method.FullName, method.Module.Name), e);
+					throw new MarkException (string.Format ("Error processing method: '{0}' in assembly: '{1}'", method.FullName, method.Module.Name), e, method);
 				} finally {
 					Annotations.Pop ();
 				}
@@ -186,7 +192,7 @@ namespace Mono.Linker.Steps {
 
 		void ProcessVirtualMethod (MethodDefinition method)
 		{
-			IList overrides = Annotations.GetOverrides (method);
+			var overrides = Annotations.GetOverrides (method);
 			if (overrides == null)
 				return;
 
@@ -453,7 +459,10 @@ namespace Mono.Linker.Steps {
 
 			ProcessModule (assembly);
 
+			MarkAssemblySpecialCustomAttributes (assembly);
+
 			MarkCustomAttributes (assembly);
+
 			MarkSecurityDeclarations (assembly);
 
 			foreach (ModuleDefinition module in assembly.Modules)
@@ -535,11 +544,14 @@ namespace Mono.Linker.Steps {
 
 			reference = GetOriginalType (reference);
 
+			if (reference is FunctionPointerType)
+				return null;
+
 			if (reference is GenericParameter)
 				return null;
 
 //			if (IgnoreScope (reference.Scope))
-//				return;
+//				return null;
 
 			TypeDefinition type = ResolveTypeDefinition (reference);
 
@@ -610,8 +622,61 @@ namespace Mono.Linker.Steps {
 		{
 		}
 
+		void MarkAssemblySpecialCustomAttributes (AssemblyDefinition assembly)
+		{
+			if (!assembly.HasCustomAttributes)
+				return;
+
+			foreach (CustomAttribute attribute in assembly.CustomAttributes) {
+				string attributeFullName = attribute.Constructor.DeclaringType.FullName;
+				switch (attributeFullName) {
+				case "System.Diagnostics.DebuggerDisplayAttribute":
+					StoreDebuggerTypeTarget (assembly, attribute, _assemblyDebuggerDisplayAttributes);
+					break;
+				case "System.Diagnostics.DebuggerTypeProxyAttribute":
+					StoreDebuggerTypeTarget (assembly, attribute, _assemblyDebuggerTypeProxyAttributes);
+					break;
+				}
+			}
+		}
+
+		void StoreDebuggerTypeTarget (AssemblyDefinition assembly, CustomAttribute attribute, Dictionary<TypeDefinition, CustomAttribute> dictionary)
+		{
+			if (_context.KeepMembersForDebuggerAttributes) {
+				TypeReference targetTypeReference = null;
+				TypeDefinition targetTypeDefinition = null;
+				foreach (var property in attribute.Properties) {
+					if (property.Name == "Target") {
+						targetTypeReference = (TypeReference) property.Argument.Value;
+						break;
+					}
+
+					if (property.Name == "TargetTypeName") {
+						targetTypeReference = assembly.MainModule.GetType ((string) property.Argument.Value);
+						break;
+					}
+				}
+
+				if (targetTypeReference != null) {
+					targetTypeDefinition = ResolveTypeDefinition (targetTypeReference);
+					if (targetTypeDefinition != null) {
+						dictionary[targetTypeDefinition] = attribute;
+					}
+				}
+			}
+		}
+
 		void MarkTypeSpecialCustomAttributes (TypeDefinition type)
 		{
+			CustomAttribute debuggerAttribute;
+			if (_assemblyDebuggerDisplayAttributes.TryGetValue (type, out debuggerAttribute)) {
+				MarkTypeWithDebuggerDisplayAttribute (type, debuggerAttribute);
+			}
+
+			if (_assemblyDebuggerTypeProxyAttributes.TryGetValue (type, out debuggerAttribute)) {
+				MarkTypeWithDebuggerTypeProxyAttribute (type, debuggerAttribute);
+			}
+
 			if (!type.HasCustomAttributes)
 				return;
 
@@ -627,7 +692,7 @@ namespace Mono.Linker.Steps {
 					MarkTypeWithDebuggerTypeProxyAttribute (type, attribute);
 					break;
 				case "System.Diagnostics.Tracing.EventDataAttribute":
-					MarkTypeWithEventDataAttribute (type, attribute);
+					MarkTypeWithEventDataAttribute (type);
 					break;
 				}
 			}
@@ -647,7 +712,7 @@ namespace Mono.Linker.Steps {
 			}
 		}
 
-		void MarkTypeWithEventDataAttribute (TypeDefinition type, CustomAttribute attribute)
+		void MarkTypeWithEventDataAttribute (TypeDefinition type)
 		{
 			MarkMethodsIf (type.Methods, IsPublicInstancePropertyMethod);
 		}
@@ -718,13 +783,26 @@ namespace Mono.Linker.Steps {
 		void MarkTypeWithDebuggerTypeProxyAttribute (TypeDefinition type, CustomAttribute attribute)
 		{
 			if (_context.KeepMembersForDebuggerAttributes) {
-				TypeReference proxyTypeReference = (TypeReference) attribute.ConstructorArguments [0].Value;
+				object constructorArgument = attribute.ConstructorArguments[0].Value;
+				TypeReference proxyTypeReference = constructorArgument as TypeReference;
+				if (proxyTypeReference == null) {
+					string proxyTypeReferenceString = constructorArgument as string;
+					if (proxyTypeReferenceString != null) {
+						proxyTypeReference = type.Module.GetType (proxyTypeReferenceString, runtimeName: true);
+					}
+				}
+
+				if (proxyTypeReference == null) {
+					return;
+				}
 
 				MarkType (proxyTypeReference);
 
 				TypeDefinition proxyType = ResolveTypeDefinition (proxyTypeReference);
-				MarkMethods (proxyType);
-				MarkFields (proxyType, includeStatic: true);
+				if (proxyType != null) {
+					MarkMethods (proxyType);
+					MarkFields (proxyType, includeStatic: true);
+				}
 			}
 		}
 
@@ -845,7 +923,7 @@ namespace Mono.Linker.Steps {
 				parameters [1].ParameterType.Name == "StreamingContext";
 		}
 
-		protected void MarkMethodsIf (ICollection methods, Func<MethodDefinition, bool> predicate)
+		protected void MarkMethodsIf (Collection<MethodDefinition> methods, Func<MethodDefinition, bool> predicate)
 		{
 			foreach (MethodDefinition method in methods)
 				if (predicate (method)) {
@@ -954,10 +1032,29 @@ namespace Mono.Linker.Steps {
 				if (mod != null)
 					MarkModifierType (mod);
 
-				type = ((TypeSpecification) type).ElementType;
+				var fnptr = type as FunctionPointerType;
+				if (fnptr != null) {
+					MarkParameters (fnptr);
+					MarkType (fnptr.ReturnType);
+					break; // FunctionPointerType is the original type
+				}
+				else {
+					type = ((TypeSpecification) type).ElementType;
+				}
 			}
 
 			return type;
+		}
+
+		void MarkParameters (FunctionPointerType fnptr)
+		{
+			if (!fnptr.HasParameters)
+				return;
+
+			for (int i = 0; i < fnptr.Parameters.Count; i++)
+			{
+				MarkType (fnptr.Parameters[i].ParameterType);
+			}
 		}
 
 		void MarkModifierType (IModifierType mod)
@@ -1082,7 +1179,7 @@ namespace Mono.Linker.Steps {
 				MarkMethodCollection (type.Methods);
 		}
 
-		void MarkMethodCollection (IEnumerable methods)
+		void MarkMethodCollection (IList<MethodDefinition> methods)
 		{
 			foreach (MethodDefinition method in methods)
 				MarkMethod (method);
@@ -1214,7 +1311,7 @@ namespace Mono.Linker.Steps {
 
 		void MarkBaseMethods (MethodDefinition method)
 		{
-			IList base_methods = Annotations.GetBaseMethods (method);
+			var base_methods = Annotations.GetBaseMethods (method);
 			if (base_methods == null)
 				return;
 
@@ -1285,7 +1382,7 @@ namespace Mono.Linker.Steps {
 
 		static internal PropertyDefinition GetProperty (MethodDefinition md)
 		{
-			TypeDefinition declaringType = (TypeDefinition) md.DeclaringType;
+			TypeDefinition declaringType = md.DeclaringType;
 			foreach (PropertyDefinition prop in declaringType.Properties)
 				if (prop.GetMethod == md || prop.SetMethod == md)
 					return prop;
@@ -1295,7 +1392,7 @@ namespace Mono.Linker.Steps {
 
 		static EventDefinition GetEvent (MethodDefinition md)
 		{
-			TypeDefinition declaringType = (TypeDefinition) md.DeclaringType;
+			TypeDefinition declaringType = md.DeclaringType;
 			foreach (EventDefinition evt in declaringType.Events)
 				if (evt.AddMethod == md || evt.InvokeMethod == md || evt.RemoveMethod == md)
 					return evt;

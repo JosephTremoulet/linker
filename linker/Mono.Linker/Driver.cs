@@ -1,4 +1,4 @@
-//
+﻿//
 // Driver.cs
 //
 // Author:
@@ -27,10 +27,8 @@
 //
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.IO;
-using SR = System.Reflection;
+using System.Collections.Generic;
 using System.Xml.XPath;
 
 using Mono.Linker.Steps;
@@ -64,11 +62,11 @@ namespace Mono.Linker {
 			return 0;
 		}
 
-		Queue _queue;
+		Queue<string> _queue;
 
 		public Driver (string [] args)
 		{
-			_queue = new Queue (args);
+			_queue = new Queue<string> (args);
 		}
 
 		bool HaveMoreTokens ()
@@ -81,7 +79,7 @@ namespace Mono.Linker {
 			Pipeline p = GetStandardPipeline ();
 			LinkContext context = GetDefaultContext (p);
 			I18nAssemblies assemblies = I18nAssemblies.All;
-			ArrayList custom_steps = new ArrayList ();
+			var custom_steps = new List<string> ();
 
 			bool resolver = false;
 			while (HaveMoreTokens ()) {
@@ -246,13 +244,13 @@ namespace Mono.Linker {
 
 		static string [] ReadLines (string file)
 		{
-			ArrayList lines = new ArrayList ();
+			var lines = new List<string> ();
 			using (StreamReader reader = new StreamReader (file)) {
 				string line;
 				while ((line = reader.ReadLine ()) != null)
 					lines.Add (line);
 			}
-			return (string []) lines.ToArray (typeof (string));
+			return lines.ToArray ();
 		}
 
 		protected static I18nAssemblies ParseI18n (string str)
@@ -285,7 +283,7 @@ namespace Mono.Linker {
 			if (_queue.Count == 0)
 				Usage ("Expecting a parameter");
 
-			return (string) _queue.Dequeue ();
+			return _queue.Dequeue ();
 		}
 
 		static LinkContext GetDefaultContext (Pipeline pipeline)
