@@ -1,5 +1,5 @@
 ﻿//
-// ResolveStep.cs
+// AssemblyLinkingTestFixture.cs
 //
 // Author:
 //   Jb Evain (jbevain@gmail.com)
@@ -26,32 +26,42 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
-using System.Collections.Generic;
+using System.IO;
+using NUnit.Framework;
 
-namespace Mono.Linker.Steps {
+namespace Mono.Linker.Tests {
 
-	public abstract class ResolveStep : BaseStep {
+	[TestFixture]
+	public class LinkingTestFixture : AbstractLinkingTestFixture {
 
-		readonly List<string> _unResolved;
-
-		protected ResolveStep ()
+		[Test]
+		public void TestSimple ()
 		{
-			_unResolved = new List<string> ();
+			RunTest ("Simple");
 		}
 
-		public bool AllMarkerResolved
+		[Test]
+		public void TestVirtualCall ()
 		{
-			get { return _unResolved.Count == 0; }
+			RunTest ("VirtualCall");
 		}
 
-		public string [] GetUnresolvedMarkers ()
+		[Test]
+		public void TestMultipleReferences ()
 		{
-			return _unResolved.ToArray ();
+			RunTest ("MultipleReferences");
 		}
 
-		protected void AddUnresolveMarker (string signature)
+		protected override void RunTest (string testCase)
 		{
-			_unResolved.Add (signature);
+			var fullTestCaseName = "TestCases.Linker." + testCase;
+			base.RunTest (fullTestCaseName);
+
+			var step = new ResolveLinkedAssemblyStep (fullTestCaseName, Path.Combine (GetTestCasePath (), "TestCases.dll"));
+
+			Pipeline.PrependStep (step);
+
+			Run ();
 		}
 	}
 }

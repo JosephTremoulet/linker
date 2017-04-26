@@ -1,4 +1,4 @@
-//
+﻿//
 // SweepStep.cs
 //
 // Author:
@@ -27,7 +27,6 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Mono.Cecil;
@@ -180,6 +179,8 @@ namespace Mono.Linker.Steps {
 			foreach (TypeReference tr in assembly.MainModule.GetTypeReferences ()) {
 				if (hash.ContainsKey (tr))
 					continue;
+				if (tr.IsWindowsRuntimeProjection)
+					continue;
 				var td = tr.Resolve ();
 				IMetadataScope scope = tr.Scope;
 				// at this stage reference might include things that can't be resolved
@@ -290,10 +291,10 @@ namespace Mono.Linker.Steps {
 			}
 		}
 
-		protected void SweepCollection (IList list)
+		protected void SweepCollection<T> (IList<T> list) where T : IMetadataTokenProvider
 		{
 			for (int i = 0; i < list.Count; i++)
-				if (!Annotations.IsMarked ((IMetadataTokenProvider) list [i]))
+				if (!Annotations.IsMarked (list [i]))
 					list.RemoveAt (i--);
 		}
 
