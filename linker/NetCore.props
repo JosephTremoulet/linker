@@ -10,4 +10,6 @@
     <OutputType>exe</OutputType>
   </PropertyGroup>
 
+  <Import Project="$(MSBuildThisFileDirectory)../StrongName.props" />
+
 </Project>

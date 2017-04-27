@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <Import Project="$(MSBuildThisFileDirectory)../../../StrongName.props" />
+
+  <ItemGroup>
+    <PackageReference Include="MicroBuild.Core" Version="0.2.0" />
+  </ItemGroup>
+
+  <!-- MicroBuild signing always inserts itself after the build, but
+       we want to sign files in the publish directory, so we have to
+       run later and prevent signing from happening during build. -->
+  <Target Name="DisableSigningDuringBuild"
+          BeforeTargets="AfterBuild">
+    <PropertyGroup>
+      <MicroBuild_SigningEnabled>false</MicroBuild_SigningEnabled>
+    </PropertyGroup>
+  </Target>
+
+  <PropertyGroup>
+    <!-- Authenticode sign before pack. -->
+    <GenerateNuspecDependsOn Condition=" '$(SignType)' != '' ">SignPackageFiles;$(GenerateNuspecDependsOn)</GenerateNuspecDependsOn>
+  </PropertyGroup>
+
+  <!-- This target calls the MicroBuild SignFiles target using the
+       desktop version of MSBuild. -->
+  <Target Name="SignPackageFiles"
+          DependsOnTargets="Publish">
+    <Message Text="SignPackageFiles" />
+
+    <!-- Because we're using a separate MSBuild invocation, the
+         disabling of MicroBuild signing during build doesn't apply
+         when the SignFiles target is called. If we could run
+         MicroBuild signing on .NET Core, we would need to re-enable
+         MicroBuild signing before this target is called. -->
+    <!--
+        <PropertyGroup>
+          <MicroBuild_SigningEnabled Condition=" '$(SignType)' == 'real' OR '$(SignType)' == 'test' ">true</MicroBuild_SigningEnabled>
+          </PropertyGroup>
+    -->
+
+    <!-- If the MicroBuild signing tasks ever support .NET Core, we
+         should call the SignFiles target here directly, instead of
+         using a separate desktop MSBuild process. -->
+    <!-- <CallTarget Targets="SignFiles" /> -->
+
+    <!-- Because MicroBuild only works on desktop msbuild, we need to exec msbuild to run just the signing target on our files. -->
+    <PropertyGroup>
+      <SignFileProject>$(MSBuildProjectFile)</SignFileProject>
+      <SignFileTarget>/t:SignFiles</SignFileTarget>
+      <!-- Because the properties and itemgroups used to compute the
+           files to sign are set during build and publish, they aren't
+           available when calling just the signing targets, so we need
+           to pass those along explicitly. -->
+      <SignFileProperties>/p:SignType=$(SignType)</SignFileProperties>
+      <SignFileProperties>$(SignFileProperties) /p:PublishDir=$(PublishDir)</SignFileProperties>
+      <SignFileProperties>$(SignFileProperties) /p:IntermediateAssembly="@(IntermediateAssembly)"</SignFileProperties>
+      <SignFileProperties>$(SignFileProperties) /p:ReferenceCopyLocalPaths="@(ReferenceCopyLocalPaths)"</SignFileProperties>
+    </PropertyGroup>
+    <Exec Command="msbuild $(SignFileProject) $(SignFileTarget) $(SignFileProperties)" />
+  </Target>
+
+  <ItemGroup>
+    <SignFilesDependsOn Include="GetPackageFilesToSign" />
+  </ItemGroup>
+
+  <Target Name="GetPackageFilesToSign"
+          DependsOnTargets="ComputeBuildAndPublishItemGroups">
+    <ItemGroup>
+      <!-- Sign the tasks dll. -->
+      <FilesToSign Include="@(IntermediateAssembly->'$(PublishDir)%(Filename)%(Extension)')" Condition=" '%(Extension)' == '.dll' ">
+        <Authenticode>Microsoft</Authenticode>
+        <StrongName>StrongName</StrongName>
+      </FilesToSign>
+      <!-- Sign locally-built dependencies of the tasks dll (the linker, and cecil) -->
+      <FilesToSign Include="@(ReferenceCopyLocalPaths->'$(PublishDir)%(Filename)%(Extension)')" Condition=" '%(Extension)' == '.dll' ">
+        <Authenticode>Microsoft</Authenticode>
+        <StrongName>StrongName</StrongName>
+      </FilesToSign>
+      <!-- Newtonsoft.Json.dll is the only 3rd-party dll that did not already have an authenticode signature, so we need to sign it ourselves. -->
+      <FilesToSign Include="$(PublishDir)Newtonsoft.Json.dll">
+        <Authenticode>3PartySHA2</Authenticode>
+      </FilesToSign>
+    </ItemGroup>
+  </Target>
+
+  <!-- This target should be removed if MicroBuild ever supports
+       signing on .NET Core. Its purpose is to reconstruct the
+       build/publish ItemGroups used to compute the files to sign,
+       from the properties that are passed into the desktop msbuild
+       invocation as a workaround. -->
+  <Target Name="ComputeBuildAndPublishItemGroups">
+    <ItemGroup>
+      <IntermediateAssembly Include="$(IntermediateAssembly)" />
+      <ReferenceCopyLocalPaths Include="$(ReferenceCopyLocalPaths)" />
+    </ItemGroup>
+  </Target>
+
+</Project>
