@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using System.Linq;
+using System.Xml.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -29,14 +29,23 @@ namespace ILLink.Tests
 			return csproj;
 		}
 
-		public void FixConfigureCall(string program)
-		{
-			output.WriteLine("ConfigureConfiguration -> ConfigureAppConfiguration");
-			File.WriteAllLines(program,
-				File.ReadAllLines(program)
-				.Select(l =>
-					l.Replace("ConfigureConfiguration",
-						"ConfigureAppConfiguration")));
+		// TODO: Remove this once we figure out what to do about apps
+		// that have the publish output filtered by a manifest
+		// file. It looks like aspnet has made this the default. See
+		// the bug at https://github.com/dotnet/sdk/issues/1160.
+		private void PreventPublishFiltering(string csproj) {
+			var xdoc = XDocument.Load(csproj);
+			var ns = xdoc.Root.GetDefaultNamespace();
+
+			var propertygroup = xdoc.Root.Element(ns + "PropertyGroup");
+
+			output.WriteLine("setting PublishWithAspNetCoreTargetManifest=false");
+			propertygroup.Add(new XElement(ns + "PublishWithAspNetCoreTargetManifest",
+										   "false"));
+
+			using (var fs = new FileStream(csproj, FileMode.Create)) {
+				xdoc.Save(fs);
+			}
 		}
 
 		[Fact]
@@ -44,11 +53,7 @@ namespace ILLink.Tests
 		{
 			string csproj = SetupProject();
 
-			// TODO: remove this once the fix from
-			// https://github.com/dotnet/templating/commit/95f7b4a3a1a3668a8b8139de7fe7f8f383f3af0c
-			// shows up in the installed cli
-			string program = Path.Combine(Path.GetDirectoryName(csproj), "Program.cs");
-			FixConfigureCall(program);
+			PreventPublishFiltering(csproj);
 
 			AddLinkerReference(csproj);
 
