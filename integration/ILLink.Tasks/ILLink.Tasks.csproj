@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
    <PropertyGroup>
-    <VersionPrefix>0.1.3-preview</VersionPrefix>
+    <VersionPrefix>0.1.4-preview</VersionPrefix>
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <RuntimeFrameworkVersion>2.0.0-beta-001509-00</RuntimeFrameworkVersion>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
@@ -166,6 +166,6 @@
          passing the publish path to the .nuspec. -->
     <PackageReference Include="Microsoft.Build.Framework" Version="0.1.0-preview-00028-160627" />
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="0.1.0-preview-00028-160627" />
-    <PackageReference Include="NuGet.ProjectModel" Version="4.0.0-rtm-2241" />
+    <PackageReference Include="NuGet.ProjectModel" Version="4.3.0-preview1-2500" />
   </ItemGroup>
 </Project>
