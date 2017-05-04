@@ -131,7 +131,7 @@
          use PrivateAssets="All" to prevent this project reference
          from being marked as a dependency of the tasks package (while
          still including it in the publish output). -->
-    <ProjectReference Include="../../linker/Mono.Linker.csproj" />
+    <ProjectReference Include="../../../linker/Mono.Linker.csproj" />
       <!-- SetConfiguration isn't required when the configuration is
            already set in the solution. However, it should be possible
            to set it here to allow packing the tasks csproj on its

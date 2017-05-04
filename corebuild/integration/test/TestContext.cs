@@ -67,7 +67,7 @@ namespace ILLink.Tests
 			}
 			var tasksPackage = tasksPackages.Single();
 			var version = tasksPackage.Remove(0, packageName.Length + 1);
-			var dotnetDir = "../../../../../corebuild/Tools/dotnetcli";
+			var dotnetDir = "../../../../../../corebuild/Tools/dotnetcli";
 			var dotnetToolNames = Directory.GetFiles(dotnetDir)
 				.Select(p => Path.GetFileName(p))
 				.Where(p => p.Contains("dotnet"));
