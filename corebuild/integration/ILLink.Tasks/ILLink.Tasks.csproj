@@ -45,6 +45,9 @@
     <NuspecProperties>id=$(AssemblyName);authors=$(AssemblyName);description=linker tasks;tfm=$(TargetFramework);</NuspecProperties>
   </PropertyGroup>
 
+  <!-- Signing properties that enable signing of this project. -->
+  <Import Project="ILLink.Tasks.signing.props" />
+
   <!-- TODO: Remove this workaround once we're able to avoid using a
        custom .nuspec. We may still need a similar workaround to
        dynamically include the publish output in the package contents.
@@ -125,7 +128,7 @@
        </ItemGroup>
    -->
 
-  
+
   <ItemGroup>
     <!-- TODO: Once https://github.com/dotnet/sdk/issues/952 is fixed,
          use PrivateAssets="All" to prevent this project reference
