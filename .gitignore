@@ -14,7 +14,8 @@
 # Build results
 linker/obj
 linker/bin
-
+corebuild/Tools
+corebuild/bootstrap.log
 
 .DS_Store
 
