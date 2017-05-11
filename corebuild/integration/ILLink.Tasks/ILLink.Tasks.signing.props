@@ -44,7 +44,8 @@
          using a separate desktop MSBuild process. -->
     <!-- <CallTarget Targets="SignFiles" /> -->
 
-    <!-- Because MicroBuild only works on desktop msbuild, we need to exec msbuild to run just the signing target on our files. -->
+    <!-- Because MicroBuild only works on desktop msbuild, we need to
+         exec msbuild to run just the signing target on our files. -->
     <PropertyGroup>
       <SignFileProject>$(MSBuildProjectFile)</SignFileProject>
       <SignFileTarget>/t:SignFiles</SignFileTarget>
@@ -56,6 +57,10 @@
       <SignFileProperties>$(SignFileProperties) /p:PublishDir=$(PublishDir)</SignFileProperties>
       <SignFileProperties>$(SignFileProperties) /p:IntermediateAssembly="@(IntermediateAssembly)"</SignFileProperties>
       <SignFileProperties>$(SignFileProperties) /p:ReferenceCopyLocalPaths="@(ReferenceCopyLocalPaths)"</SignFileProperties>
+      <!-- MicroBuild expects the binaries to sign to be in a
+           particular directory, so we set OutDir to tell it that
+           we're signing files in the publish directory. -->
+      <SignFileProperties>$(SignFileProperties) /p:OutDir=$(PublishDir)</SignFileProperties>
     </PropertyGroup>
     <Exec Command="msbuild $(SignFileProject) $(SignFileTarget) $(SignFileProperties)" />
   </Target>
@@ -77,7 +82,9 @@
         <Authenticode>Microsoft</Authenticode>
         <StrongName>StrongName</StrongName>
       </FilesToSign>
-      <!-- Newtonsoft.Json.dll is the only 3rd-party dll that did not already have an authenticode signature, so we need to sign it ourselves. -->
+      <!-- Newtonsoft.Json.dll is the only 3rd-party dll that did not
+           already have an authenticode signature, so we need to sign
+           it ourselves. -->
       <FilesToSign Include="$(PublishDir)Newtonsoft.Json.dll">
         <Authenticode>3PartySHA2</Authenticode>
       </FilesToSign>
