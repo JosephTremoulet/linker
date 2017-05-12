@@ -128,7 +128,7 @@
        </ItemGroup>
    -->
 
-
+  
   <ItemGroup>
     <!-- TODO: Once https://github.com/dotnet/sdk/issues/952 is fixed,
          use PrivateAssets="All" to prevent this project reference

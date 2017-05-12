@@ -34,7 +34,7 @@ using Mono.Cecil.Cil;
 
 namespace Mono.Linker {
 
-	public class LinkContext {
+	public class LinkContext : IDisposable {
 
 		Pipeline _pipeline;
 		AssemblyAction _coreAction;
@@ -128,17 +128,18 @@ namespace Mono.Linker {
 			: this(pipeline, resolver, new ReaderParameters
 			{
 				AssemblyResolver = resolver
-			})
+			},
+			new AnnotationStore ())
 		{
 		}
 
-		public LinkContext (Pipeline pipeline, AssemblyResolver resolver, ReaderParameters readerParameters)
+		public LinkContext (Pipeline pipeline, AssemblyResolver resolver, ReaderParameters readerParameters, AnnotationStore annotations)
 		{
 			_pipeline = pipeline;
 			_resolver = resolver;
 			_actions = new Dictionary<string, AssemblyAction> ();
 			_parameters = new Dictionary<string, string> ();
-			_annotations = new AnnotationStore ();
+			_annotations = annotations;
 			_readerParameters = readerParameters;
 		}
 
@@ -166,8 +167,7 @@ namespace Mono.Linker {
 		{
 			if (File.Exists (name)) {
 				AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly (name, _readerParameters);
-				_resolver.CacheAssembly (assembly);
-				return assembly;
+				return _resolver.CacheAssembly (assembly);
 			}
 
 			return Resolve (new AssemblyNameReference (name, new Version ()));
@@ -302,6 +302,11 @@ namespace Mono.Linker {
 			string val = null;
 			_parameters.TryGetValue (key, out val);
 			return val;
+		}
+
+		public void Dispose ()
+		{
+			_resolver.Dispose ();
 		}
 	}
 }

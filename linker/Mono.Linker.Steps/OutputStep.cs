@@ -27,21 +27,49 @@
 //
 
 using System;
-using System.IO;
 using System.Collections.Generic;
+using System.IO;
 
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using Mono.Cecil.PE;
 
 namespace Mono.Linker.Steps {
 
 	public class OutputStep : BaseStep {
 
-		private List<string> keptAssemblies;
+		private static Dictionary<UInt16, TargetArchitecture> architectureMap;
+
+		private enum NativeOSOverride {
+			Apple = 0x4644,
+			FreeBSD = 0xadc4,
+			Linux = 0x7b79,
+			NetBSD = 0x1993,
+			Default = 0
+		}
+
+		static TargetArchitecture CalculateArchitecture (TargetArchitecture readyToRunArch)
+		{
+			if (architectureMap == null) {
+				architectureMap = new Dictionary<UInt16, TargetArchitecture> ();
+				foreach (var os in Enum.GetValues (typeof (NativeOSOverride))) {
+					ushort osVal = (ushort) (NativeOSOverride) os;
+					foreach (var arch in Enum.GetValues (typeof (TargetArchitecture))) {
+						ushort archVal = (ushort) (TargetArchitecture)arch;
+						architectureMap.Add ((ushort) (archVal ^ osVal), (TargetArchitecture) arch);
+					}
+				}
+			}
+
+			TargetArchitecture pureILArch;
+			if (architectureMap.TryGetValue ((ushort) readyToRunArch, out pureILArch)) {
+				return pureILArch;
+			}
+			throw new BadImageFormatException ("unrecognized module attributes");
+		}
 
 		protected override void Process ()
 		{
-			keptAssemblies = new List<string>();
 			CheckOutputDirectory ();
 			Annotations.SaveDependencies ();
 		}
@@ -59,6 +87,26 @@ namespace Mono.Linker.Steps {
 			OutputAssembly (assembly);
 		}
 
+		static bool IsReadyToRun (ModuleDefinition module)
+		{
+			return (module.Attributes & ModuleAttributes.ILOnly) == 0 &&
+				(module.Attributes & (ModuleAttributes) 0x04) != 0;
+		}
+
+		void WriteAssembly (AssemblyDefinition assembly, string directory)
+		{
+			foreach (var module in assembly.Modules) {
+				// Write back pure IL even for R2R assemblies
+				if (IsReadyToRun (module)) {
+					module.Attributes |= ModuleAttributes.ILOnly;
+					module.Attributes ^= (ModuleAttributes) (uint) 0x04;
+					module.Architecture = CalculateArchitecture (module.Architecture);
+				}
+			}
+
+			assembly.Write (GetAssemblyFileName (assembly, directory), SaveSymbols (assembly));
+		}
+
 		void OutputAssembly (AssemblyDefinition assembly)
 		{
 			string directory = Context.OutputDirectory;
@@ -69,12 +117,10 @@ namespace Mono.Linker.Steps {
 			case AssemblyAction.Save:
 			case AssemblyAction.Link:
 				Context.Annotations.AddDependency (assembly);
-				keptAssemblies.Add (assembly.Name.Name);
-				assembly.Write (GetAssemblyFileName (assembly, directory), SaveSymbols (assembly));
+				WriteAssembly (assembly, directory);
 				break;
 			case AssemblyAction.Copy:
 				Context.Annotations.AddDependency (assembly);
-				keptAssemblies.Add (assembly.Name.Name);
 				CloseSymbols (assembly);
 				CopyAssembly (GetOriginalAssemblyFileInfo (assembly), directory, Context.LinkSymbols);
 				break;

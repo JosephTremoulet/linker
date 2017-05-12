@@ -1124,7 +1124,7 @@ namespace Mono.Linker.Steps {
 				MarkMethods (type);
 				break;
 			case TypePreserve.Fields:
-				MarkFields (type, true);
+				MarkFields (type, true, true);
 				break;
 			case TypePreserve.Methods:
 				MarkMethods (type);
@@ -1150,7 +1150,7 @@ namespace Mono.Linker.Steps {
 			MarkMethodCollection (list);
 		}
 
-		protected void MarkFields (TypeDefinition type, bool includeStatic)
+		protected void MarkFields (TypeDefinition type, bool includeStatic, bool markBackingFieldsOnlyIfPropertyMarked = false)
 		{
 			if (!type.HasFields)
 				return;
@@ -1158,8 +1158,33 @@ namespace Mono.Linker.Steps {
 			foreach (FieldDefinition field in type.Fields) {
 				if (!includeStatic && field.IsStatic)
 					continue;
+
+				if (markBackingFieldsOnlyIfPropertyMarked && field.Name.EndsWith (">k__BackingField")) {
+					// We can't reliably construct the expected property name from the backing field name for all compilers
+					// because csc shortens the name of the backing field in some cases
+					// For example:
+					// Field Name = <IFoo<int>.Bar>k__BackingField
+					// Property Name = IFoo<System.Int32>.Bar
+                    //
+					// instead we will search the properties and find the one that makes use of the current backing field
+					var propertyDefinition = SearchPropertiesForMatchingFieldDefinition (field);
+					if (propertyDefinition != null && !Annotations.IsMarked (propertyDefinition))
+						continue;
+				}
 				MarkField (field);
 			}
+		}
+
+		static PropertyDefinition SearchPropertiesForMatchingFieldDefinition (FieldDefinition field)
+		{
+			foreach (var property in field.DeclaringType.Properties) {
+				foreach (var ins in property.GetMethod.Body.Instructions) {
+					if (ins.Operand != null && ins.Operand == field)
+						return property;
+				}
+			}
+
+			return null;
 		}
 
 		protected void MarkStaticFields(TypeDefinition type)
@@ -1328,12 +1353,12 @@ namespace Mono.Linker.Steps {
 		{
 			TypeDefinition returnTypeDefinition = ResolveTypeDefinition (method.ReturnType);
 			const bool includeStaticFields = false;
-			if (returnTypeDefinition != null) {
+			if (returnTypeDefinition != null && !returnTypeDefinition.IsImport) {
 				MarkDefaultConstructor (returnTypeDefinition);
 				MarkFields (returnTypeDefinition, includeStaticFields);
 			}
 
-			if (method.HasThis) {
+			if (method.HasThis && !method.DeclaringType.IsImport) {
 				MarkFields (method.DeclaringType, includeStaticFields);
 			}
 
@@ -1343,7 +1368,7 @@ namespace Mono.Linker.Steps {
 					paramTypeReference = (paramTypeReference as TypeSpecification).ElementType;
 				}
 				TypeDefinition paramTypeDefinition = ResolveTypeDefinition (paramTypeReference);
-				if (paramTypeDefinition != null) {
+				if (paramTypeDefinition != null && !paramTypeDefinition.IsImport) {
 					MarkFields (paramTypeDefinition, includeStaticFields);
 					if (pd.ParameterType.IsByReference) {
 						MarkDefaultConstructor (paramTypeDefinition);
@@ -1357,9 +1382,15 @@ namespace Mono.Linker.Steps {
 			if (!method.HasBody)
 				return false;
 
-			AssemblyDefinition assembly = ResolveAssembly (method.DeclaringType.Scope);
-			return (Annotations.GetAction (method) == MethodAction.ForceParse ||
-				(Annotations.GetAction (assembly) == AssemblyAction.Link && Annotations.GetAction (method) == MethodAction.Parse));
+			switch (Annotations.GetAction (method)) {
+			case MethodAction.ForceParse:
+				return true;
+			case MethodAction.Parse:
+				AssemblyDefinition assembly = ResolveAssembly (method.DeclaringType.Scope);
+				return Annotations.GetAction (assembly) == AssemblyAction.Link;
+			default:
+				return false;
+			}
 		}
 
 		static internal bool IsPropertyMethod (MethodDefinition md)

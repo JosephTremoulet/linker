@@ -8,8 +8,10 @@
 # User-specific files
 *.suo
 *.user
+*.userprefs
 .vs/
 
+packages/
 
 # Build results
 linker/obj
