@@ -40,11 +40,11 @@ namespace Mono.Linker.Tests.TestCasesRunner {
 			var compiler = _factory.CreateCompiler ();
 			var sourceFiles = sandbox.SourceFiles.Select(s => s.ToString()).ToArray();
 
-			var references = metadataProvider.GetReferencedAssemblies ().Concat (sandbox.InputDirectoryReferences.Select (r => r.ToString ())).ToArray ();
-			var inputAssemblyPath = compiler.CompileTestIn (sandbox.InputDirectory, sourceFiles, references, null);
+			var references = metadataProvider.GetReferencedAssemblies(sandbox.InputDirectory);
+			var inputAssemblyPath = compiler.CompileTestIn (sandbox.InputDirectory, "test.exe", sourceFiles, references, null);
 
-			references = metadataProvider.GetReferencedAssemblies ().Concat (sandbox.ExpectationsDirectoryReferences.Select (r => r.ToString ())).ToArray ();
-			var expectationsAssemblyPath = compiler.CompileTestIn (sandbox.ExpectationsDirectory, sourceFiles, references, new [] { "INCLUDE_EXPECTATIONS" });
+			references = metadataProvider.GetReferencedAssemblies(sandbox.ExpectationsDirectory);
+			var expectationsAssemblyPath = compiler.CompileTestIn (sandbox.ExpectationsDirectory, "test.exe", sourceFiles, references, new [] { "INCLUDE_EXPECTATIONS" });
 			return new ManagedCompilationResult (inputAssemblyPath, expectationsAssemblyPath);
 		}
 
@@ -68,11 +68,17 @@ namespace Mono.Linker.Tests.TestCasesRunner {
 			foreach (var extraSearchDir in metadataProvider.GetExtraLinkerSearchDirectories ())
 				builder.AddSearchDirectory (extraSearchDir);
 
-			builder.AddCoreLink (caseDefinedOptions.CoreLink);
+			builder.ProcessOptions (caseDefinedOptions);
+
+			AddAdditionalLinkOptions (builder, metadataProvider);
 
 			linker.Link (builder.ToArgs ());
 
 			return new LinkedTestCaseResult (testCase, compilationResult.InputAssemblyPath, sandbox.OutputDirectory.Combine (compilationResult.InputAssemblyPath.FileName), compilationResult.ExpectationsAssemblyPath);
+		}
+
+		protected virtual void AddAdditionalLinkOptions (LinkerArgumentBuilder builder, TestCaseMetadaProvider metadataProvider)
+		{
 		}
 	}
 }

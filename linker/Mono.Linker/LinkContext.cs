@@ -279,7 +279,7 @@ namespace Mono.Linker {
 			}
 		}
 
-		public AssemblyDefinition [] GetAssemblies ()
+		public virtual AssemblyDefinition [] GetAssemblies ()
 		{
 			var cache = _resolver.AssemblyCache;
 			AssemblyDefinition [] asms = new AssemblyDefinition [cache.Count];

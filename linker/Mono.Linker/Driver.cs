@@ -37,7 +37,7 @@ namespace Mono.Linker {
 
 	public class Driver {
 
-#if NET_CORE
+#if FEATURE_ILLINK
 		static readonly string _linker = "IL Linker";
 #else
 		static readonly string _linker = "Mono CIL Linker";
@@ -165,6 +165,10 @@ namespace Mono.Linker {
 						if (!bool.Parse (GetParam ()))
 							p.RemoveStep (typeof (RegenerateGuidStep));
 						break;
+					case 'z':
+							if (!bool.Parse (GetParam ()))
+								p.RemoveStep (typeof (BlacklistStep));
+							break;
 					case 'v':
 						context.KeepMembersForDebuggerAttributes = bool.Parse (GetParam ());
 						break;
@@ -297,7 +301,7 @@ namespace Mono.Linker {
 			Console.WriteLine (_linker);
 			if (msg != null)
 				Console.WriteLine ("Error: " + msg);
-#if NET_CORE
+#if FEATURE_ILLINK
 			Console.WriteLine ("illink [options] -x|-a|-i file");
 #else
 			Console.WriteLine ("monolinker [options] -x|-a|-i file");
@@ -332,7 +336,7 @@ namespace Mono.Linker {
 			Console.WriteLine ("   -a          Link from a list of assemblies");
 			Console.WriteLine ("   -r          Link from a list of assemblies using roots visible outside of the assembly");
 			Console.WriteLine ("   -i          Link from an mono-api-info descriptor");
-			Console.WriteLine ("   -k          Specify a file in which to write the list of kept assemblies");
+			Console.WriteLine ("   -z          Include default preservations (true or false), default to true");
 			Console.WriteLine ("");
 
 			Environment.Exit (1);

@@ -83,8 +83,13 @@ namespace Mono.Linker.Steps {
 		{
 			while (iterator.MoveNext ()) {
 				AssemblyDefinition assembly = GetAssembly (context, GetFullName (iterator.Current));
-				ProcessTypes (assembly, iterator.Current.SelectChildren ("type", _ns));
-				ProcessNamespaces (assembly, iterator.Current.SelectChildren ("namespace", _ns));
+				if (GetTypePreserve (iterator.Current) == TypePreserve.All) {
+					foreach (var type in assembly.MainModule.Types)
+						MarkAndPreserveAll (type);
+				} else {
+					ProcessTypes (assembly, iterator.Current.SelectChildren ("type", _ns));
+					ProcessNamespaces (assembly, iterator.Current.SelectChildren ("namespace", _ns));
+				}
 			}
 		}
 
@@ -431,6 +436,11 @@ namespace Mono.Linker.Steps {
 		static string GetAttribute (XPathNavigator nav, string attribute)
 		{
 			return nav.GetAttribute (attribute, _ns);
+		}
+
+		public override string ToString ()
+		{
+			return "ResolveFromXmlStep: " + _xmlDocumentLocation;
 		}
 	}
 }

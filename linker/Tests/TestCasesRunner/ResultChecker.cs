@@ -32,14 +32,16 @@ namespace Mono.Linker.Tests.TestCasesRunner {
 
 			try
 			{
-				var original = ResolveOriginalsAssembly (linkResult.ExpectationsAssemblyPath);
+				var original = ResolveOriginalsAssembly (linkResult.ExpectationsAssemblyPath.FileNameWithoutExtension);
 				PerformOutputAssemblyChecks (original, linkResult.OutputAssemblyPath.Parent);
 
-				var linked = ResolveLinkedAssembly (linkResult.OutputAssemblyPath);
+				var linked = ResolveLinkedAssembly (linkResult.OutputAssemblyPath.FileNameWithoutExtension);
 
 				new AssemblyChecker (original, linked).Verify ();
 
-				VerifyLinkingOfOtherAssemblies (original, linkResult.OutputAssemblyPath.Parent);
+				VerifyLinkingOfOtherAssemblies (original);
+
+				AdditionalChecking (linkResult, original, linked);
 			}
 			finally
 			{
@@ -54,14 +56,12 @@ namespace Mono.Linker.Tests.TestCasesRunner {
 			_linkedResolver.AddSearchDirectory (linkedResult.OutputAssemblyPath.Parent.ToString ());
 		}
 
-		AssemblyDefinition ResolveLinkedAssembly (NPath assemblyPath)
+		AssemblyDefinition ResolveLinkedAssembly (string assemblyName)
 		{
-			return _linkedResolver.Resolve (new AssemblyNameReference (assemblyPath.FileNameWithoutExtension, null));
-		}
-
-		AssemblyDefinition ResolveOriginalsAssembly (NPath assemblyPath)
-		{
-			return _originalsResolver.Resolve (new AssemblyNameReference (assemblyPath.FileNameWithoutExtension, null));
+			var cleanAssemblyName = assemblyName;
+			if (assemblyName.EndsWith(".exe") || assemblyName.EndsWith(".dll"))
+				cleanAssemblyName = System.IO.Path.GetFileNameWithoutExtension (assemblyName);
+			return _linkedResolver.Resolve (new AssemblyNameReference (cleanAssemblyName, null));
 		}
 
 		AssemblyDefinition ResolveOriginalsAssembly (string assemblyName)
@@ -79,16 +79,26 @@ namespace Mono.Linker.Tests.TestCasesRunner {
 			foreach (var assemblyAttr in assembliesToCheck) {
 				var name = (string) assemblyAttr.ConstructorArguments.First ().Value;
 				var expectedPath = outputDirectory.Combine (name);
-				Assert.IsTrue (expectedPath.FileExists (), $"Expected the assembly {name} to exist in {outputDirectory}, but it did not");
+
+				if (assemblyAttr.AttributeType.Name == nameof (RemovedAssemblyAttribute))
+					Assert.IsFalse (expectedPath.FileExists (), $"Expected the assembly {name} to not exist in {outputDirectory}, but it did");
+				else if (assemblyAttr.AttributeType.Name == nameof (KeptAssemblyAttribute))
+					Assert.IsTrue (expectedPath.FileExists (), $"Expected the assembly {name} to exist in {outputDirectory}, but it did not");
+				else
+					throw new NotImplementedException($"Unknown assembly assertion of type {assemblyAttr.AttributeType}");
 			}
 		}
 
-		void VerifyLinkingOfOtherAssemblies (AssemblyDefinition original, NPath outputDirectory)
+		protected virtual void AdditionalChecking (LinkedTestCaseResult linkResult, AssemblyDefinition original, AssemblyDefinition linked)
+		{
+		}
+
+		void VerifyLinkingOfOtherAssemblies (AssemblyDefinition original)
 		{
 			var checks = BuildOtherAssemblyCheckTable (original);
 
 			foreach (var assemblyName in checks.Keys) {
-				using (var linkedAssembly = ResolveLinkedAssembly (outputDirectory.Combine (assemblyName))) {
+				using (var linkedAssembly = ResolveLinkedAssembly (assemblyName)) {
 					foreach (var checkAttrInAssembly in checks [assemblyName]) {
 						var expectedTypeName = checkAttrInAssembly.ConstructorArguments [1].Value.ToString ();
 						var linkedType = linkedAssembly.MainModule.GetType (expectedTypeName);
@@ -110,7 +120,7 @@ namespace Mono.Linker.Tests.TestCasesRunner {
 
 							VerifyKeptMemberInAssembly (checkAttrInAssembly, linkedType);
 						} else {
-							throw new NotImplementedException ($"Type {expectedTypeName}, has an unknown other assembly attribute of type {checkAttrInAssembly.AttributeType}");
+							UnhandledOtherAssemblyAssertion (expectedTypeName, checkAttrInAssembly, linkedType);
 						}
 					}
 				}
@@ -195,17 +205,22 @@ namespace Mono.Linker.Tests.TestCasesRunner {
 			}
 		}
 
-		TypeDefinition GetOriginalTypeFromInAssemblyAttribute (CustomAttribute inAssemblyAttribute)
+		protected TypeDefinition GetOriginalTypeFromInAssemblyAttribute (CustomAttribute inAssemblyAttribute)
 		{
 			var attributeValueAsTypeReference = inAssemblyAttribute.ConstructorArguments [1].Value as TypeReference;
 			if (attributeValueAsTypeReference != null)
 				return attributeValueAsTypeReference.Resolve ();
 
 			var assembly = ResolveOriginalsAssembly (inAssemblyAttribute.ConstructorArguments [0].Value.ToString ());
-			return assembly.MainModule.GetType (inAssemblyAttribute.ConstructorArguments [1].Value.ToString ());
+
+			var expectedTypeName = inAssemblyAttribute.ConstructorArguments [1].Value.ToString ();
+			var originalType = assembly.MainModule.GetType (expectedTypeName);
+			if (originalType == null)
+				throw new InvalidOperationException ($"Unable to locate the original type `{expectedTypeName}`");
+			return originalType;
 		}
 
-		static Dictionary<string, List<CustomAttribute>> BuildOtherAssemblyCheckTable (AssemblyDefinition original)
+		Dictionary<string, List<CustomAttribute>> BuildOtherAssemblyCheckTable (AssemblyDefinition original)
 		{
 			var checks = new Dictionary<string, List<CustomAttribute>> ();
 
@@ -223,12 +238,14 @@ namespace Mono.Linker.Tests.TestCasesRunner {
 			return checks;
 		}
 
-		static bool IsTypeInOtherAssemblyAssertion (CustomAttribute attr)
+		protected virtual void UnhandledOtherAssemblyAssertion (string expectedTypeName, CustomAttribute checkAttrInAssembly, TypeDefinition linkedType)
 		{
-			return attr.AttributeType.Name == nameof (RemovedTypeInAssemblyAttribute)
-				|| attr.AttributeType.Name == nameof (KeptTypeInAssemblyAttribute)
-				|| attr.AttributeType.Name == nameof (RemovedMemberInAssemblyAttribute)
-				|| attr.AttributeType.Name == nameof (KeptMemberInAssemblyAttribute);
+			throw new NotImplementedException ($"Type {expectedTypeName}, has an unknown other assembly attribute of type {checkAttrInAssembly.AttributeType}");
+		}
+
+		bool IsTypeInOtherAssemblyAssertion (CustomAttribute attr)
+		{
+			return attr.AttributeType.Resolve ().DerivesFrom (nameof (BaseInAssemblyAttribute));
 		}
 	}
 }
