@@ -11,22 +11,18 @@
        we want to sign files in the publish directory, so we have to
        run later and prevent signing from happening during build. -->
   <Target Name="DisableSigningDuringBuild"
-          BeforeTargets="AfterBuild">
+          BeforeTargets="AfterBuild"
+          Condition=" '$(SignType)' != '' ">
     <PropertyGroup>
       <MicroBuild_SigningEnabled>false</MicroBuild_SigningEnabled>
     </PropertyGroup>
   </Target>
 
-  <PropertyGroup>
-    <!-- Authenticode sign before pack. -->
-    <GenerateNuspecDependsOn Condition=" '$(SignType)' != '' ">SignPackageFiles;$(GenerateNuspecDependsOn)</GenerateNuspecDependsOn>
-  </PropertyGroup>
-
   <!-- This target calls the MicroBuild SignFiles target using the
        desktop version of MSBuild. -->
-  <Target Name="SignPackageFiles"
-          DependsOnTargets="Publish">
-    <Message Text="SignPackageFiles" />
+  <Target Name="SignPublishFiles"
+          AfterTargets="Publish"
+          Condition=" '$(SignType)' != '' ">
 
     <!-- Because we're using a separate MSBuild invocation, the
          disabling of MicroBuild signing during build doesn't apply
@@ -57,6 +53,9 @@
       <SignFileProperties>$(SignFileProperties) /p:PublishDir=$(PublishDir)</SignFileProperties>
       <SignFileProperties>$(SignFileProperties) /p:IntermediateAssembly="@(IntermediateAssembly)"</SignFileProperties>
       <SignFileProperties>$(SignFileProperties) /p:ReferenceCopyLocalPaths="@(ReferenceCopyLocalPaths)"</SignFileProperties>
+      <!-- MicroBuild.Core logic only gets imported if TargetFramework
+           is set to one of the project's TFMs. -->
+      <SignFileProperties>$(SignFileProperties) /p:TargetFramework="$(TargetFramework)"</SignFileProperties>
       <!-- MicroBuild expects the binaries to sign to be in a
            particular directory, so we set OutDir to tell it that
            we're signing files in the publish directory. -->
@@ -66,21 +65,28 @@
   </Target>
 
   <ItemGroup>
-    <SignFilesDependsOn Include="GetPackageFilesToSign" />
+    <SignFilesDependsOn Include="GetPublishFilesToSign" />
   </ItemGroup>
 
-  <Target Name="GetPackageFilesToSign"
+  <Target Name="GetPublishFilesToSign"
           DependsOnTargets="ComputeBuildAndPublishItemGroups">
     <ItemGroup>
       <!-- Sign the tasks dll. -->
-      <FilesToSign Include="@(IntermediateAssembly->'$(PublishDir)%(Filename)%(Extension)')" Condition=" '%(Extension)' == '.dll' ">
+      <FilesToSign Include="@(IntermediateAssembly->'$(PublishDir)%(Filename)%(Extension)')"
+                   Condition=" '%(Extension)' == '.dll' ">
         <Authenticode>Microsoft</Authenticode>
         <StrongName>StrongName</StrongName>
       </FilesToSign>
-      <!-- Sign locally-built dependencies of the tasks dll (the linker, and cecil) -->
-      <FilesToSign Include="@(ReferenceCopyLocalPaths->'$(PublishDir)%(Filename)%(Extension)')" Condition=" '%(Extension)' == '.dll' ">
+      <!-- Sign locally-built linker dll. -->
+      <FilesToSign Include="$(PublishDir)illink.dll">
         <Authenticode>Microsoft</Authenticode>
         <StrongName>StrongName</StrongName>
+      </FilesToSign>
+      <!-- Sign locally-built cecil dlls. These already have a
+           strongname from the cecil project. -->
+      <FilesToSign Include="$(PublishDir)Mono.Cecil.dll;
+                            $(PublishDir)Mono.Cecil.Pdb.dll;">
+        <Authenticode>Microsoft</Authenticode>
       </FilesToSign>
       <!-- Newtonsoft.Json.dll is the only 3rd-party dll that did not
            already have an authenticode signature, so we need to sign
