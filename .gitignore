@@ -25,3 +25,5 @@ corebuild/bootstrap.log
 
 *.force
 *.FileListAbsolute.txt
+
+**/Dependencies/*.dll
