@@ -27,3 +27,6 @@ corebuild/bootstrap.log
 *.FileListAbsolute.txt
 
 **/Dependencies/*.dll
+
+corebuild/Tools
+corebuild/bootstrap.log
