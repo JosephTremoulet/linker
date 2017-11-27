@@ -275,7 +275,7 @@ namespace Mono.Linker.Steps {
 
 		protected virtual void MarkCustomAttribute (CustomAttribute ca)
 		{
-			Annotations.Push (ca);
+			Annotations.Push ((object)ca.AttributeType ?? (object)ca);
 			try {
 				MarkMethod (ca.Constructor);
 
@@ -647,8 +647,7 @@ namespace Mono.Linker.Steps {
 
 			if (type.HasInterfaces) {
 				foreach (var iface in type.Interfaces) {
-					MarkCustomAttributes (iface);
-					MarkType (iface.InterfaceType);
+					MarkInterfaceImplementation (type, iface);
 				}
 			}
 
@@ -986,11 +985,8 @@ namespace Mono.Linker.Steps {
 		protected void MarkMethodsIf (Collection<MethodDefinition> methods, Func<MethodDefinition, bool> predicate)
 		{
 			foreach (MethodDefinition method in methods)
-				if (predicate (method)) {
-					Annotations.Push (predicate);
+				if (predicate (method))
 					MarkMethod (method);
-					Annotations.Pop ();
-				}
 		}
 
 		static bool IsDefaultConstructor (MethodDefinition method)
@@ -1447,7 +1443,14 @@ namespace Mono.Linker.Steps {
 				return true;
 			case MethodAction.Parse:
 				AssemblyDefinition assembly = ResolveAssembly (method.DeclaringType.Scope);
-				return Annotations.GetAction (assembly) == AssemblyAction.Link;
+				switch (Annotations.GetAction (assembly)) {
+				case AssemblyAction.Link:
+				case AssemblyAction.Copy:
+				case AssemblyAction.CopyUsed:
+					return true;
+				default:
+					return false;
+				}
 			default:
 				return false;
 			}
@@ -1553,12 +1556,22 @@ namespace Mono.Linker.Steps {
 
 		protected virtual void HandleUnresolvedType (TypeReference reference)
 		{
-			throw new ResolutionException (reference);
+			if (!_context.IgnoreUnresolved) {
+				throw new ResolutionException (reference);
+			}
 		}
 
 		protected virtual void HandleUnresolvedMethod (MethodReference reference)
 		{
-			throw new ResolutionException (reference);
+			if (!_context.IgnoreUnresolved) {
+				throw new ResolutionException (reference);
+			}
+		}
+
+		protected virtual void MarkInterfaceImplementation (TypeDefinition type, InterfaceImplementation iface)
+		{
+			MarkCustomAttributes (iface);
+			MarkType (iface.InterfaceType);
 		}
 	}
 }

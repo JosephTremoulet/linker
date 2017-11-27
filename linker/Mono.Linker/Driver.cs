@@ -95,6 +95,11 @@ namespace Mono.Linker {
 						if (token.Length < 3)
 							Usage ("Option is too short");
 
+						if (token == "--skip-unresolved") {
+							context.IgnoreUnresolved = bool.Parse (GetParam ());
+							continue;
+						}
+
 						switch (token [2]) {
 						case 'v':
 							Version ();
@@ -117,11 +122,11 @@ namespace Mono.Linker {
 					case 'o':
 						context.OutputDirectory = GetParam ();
 						break;
-					case 'f':
-						context.FullAssemblyOnlyRemoval = true;
-						break;
 					case 'c':
 						context.CoreAction = ParseAssemblyAction (GetParam ());
+						break;
+					case 'u':
+						context.UserAction = ParseAssemblyAction (GetParam ());
 						break;
 					case 'p':
 						AssemblyAction action = ParseAssemblyAction (GetParam ());
@@ -292,6 +297,7 @@ namespace Mono.Linker {
 		{
 			LinkContext context = new LinkContext (pipeline);
 			context.CoreAction = AssemblyAction.Skip;
+			context.UserAction = AssemblyAction.Link;
 			context.OutputDirectory = "output";
 			return context;
 		}
@@ -309,10 +315,11 @@ namespace Mono.Linker {
 
 			Console.WriteLine ("   --about     About the {0}", _linker);
 			Console.WriteLine ("   --version   Print the version number of the {0}", _linker);
+			Console.WriteLine ("   --skip-unresolved   Ignore unresolved types and methods (true or false)");
 			Console.WriteLine ("   -out        Specify the output directory, default to `output'");
-			Console.WriteLine ("   -f          Remove only full assemblies when they are unused;");
 			Console.WriteLine ("                 keep partially used assemblies intact");
 			Console.WriteLine ("   -c          Action on the core assemblies, skip, copy or link, default to skip");
+			Console.WriteLine ("   -u          Action on the user assemblies, skip, copy, copyused or link, default to link");
 			Console.WriteLine ("   -p          Action per assembly");
 			Console.WriteLine ("   -s          Add a new step to the pipeline.");
 			Console.WriteLine ("   -t          Keep assemblies in which only type forwarders are referenced.");
@@ -346,7 +353,7 @@ namespace Mono.Linker {
 		{
 			Console.WriteLine ("{0} Version {1}",
 				_linker,
-			    System.Reflection.Assembly.GetExecutingAssembly ().GetName ().Version);
+				System.Reflection.Assembly.GetExecutingAssembly ().GetName ().Version);
 
 			Environment.Exit(1);
 		}

@@ -38,6 +38,7 @@ namespace Mono.Linker {
 
 		Pipeline _pipeline;
 		AssemblyAction _coreAction;
+		AssemblyAction _userAction;
 		Dictionary<string, AssemblyAction> _actions;
 		string _outputDirectory;
 		bool _fullAssemblyOnlyRemoval;
@@ -45,6 +46,7 @@ namespace Mono.Linker {
 		bool _linkSymbols;
 		bool _keepTypeForwarderOnlyAssemblies;
 		bool _keepMembersForDebuggerAttributes;
+		bool _ignoreUnresolved;
 
 		AssemblyResolver _resolver;
 
@@ -67,15 +69,14 @@ namespace Mono.Linker {
 			set { _outputDirectory = value; }
 		}
 
-		public bool FullAssemblyOnlyRemoval
-		{
-			get { return _fullAssemblyOnlyRemoval; }
-			set { _fullAssemblyOnlyRemoval = value; }
-		}
-
 		public AssemblyAction CoreAction {
 			get { return _coreAction; }
 			set { _coreAction = value; }
+		}
+
+		public AssemblyAction UserAction {
+			get { return _userAction; }
+			set { _userAction = value; }
 		}
 
 		public bool LinkSymbols {
@@ -93,6 +94,12 @@ namespace Mono.Linker {
 		{
 			get { return _keepMembersForDebuggerAttributes; }
 			set { _keepMembersForDebuggerAttributes = value; }
+		}
+
+		public bool IgnoreUnresolved
+		{
+			get { return _ignoreUnresolved; }
+			set { _ignoreUnresolved = value; }
 		}
 
 		public System.Collections.IDictionary Actions {
@@ -254,7 +261,7 @@ namespace Mono.Linker {
 			} else if (IsCore (name)) {
 				action = _coreAction;
 			} else {
-				action = AssemblyAction.Link;
+				action = _userAction;
 			}
 
 			_annotations.SetAction (assembly, action);
