@@ -2,7 +2,7 @@
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="14.0">
   <!--
       TODO: Remove this workaround once supported.
-      
+
       The configuration isn't correctly set when the linker is
       restored as a P2P reference due to a nuget bug
       (https://github.com/NuGet/Home/issues/4873). As a workaround, we

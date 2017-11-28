@@ -41,7 +41,6 @@ namespace Mono.Linker {
 		AssemblyAction _userAction;
 		Dictionary<string, AssemblyAction> _actions;
 		string _outputDirectory;
-		bool _fullAssemblyOnlyRemoval;
 		readonly Dictionary<string, string> _parameters;
 		bool _linkSymbols;
 		bool _keepTypeForwarderOnlyAssemblies;
