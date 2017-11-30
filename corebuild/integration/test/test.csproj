@@ -16,6 +16,11 @@
     </Content>
   </ItemGroup>
 
+  <Target Name="CopyNuGetConfig"
+          AfterTargets="AfterBuild">
+    <Copy SourceFiles="nuget/NuGet.config" DestinationFolder="$(OutDir)" />
+  </Target>
+
   <ItemGroup>
     <Compile Include="IntegrationTestBase.cs" />
     <Compile Include="TestContext.cs" />
