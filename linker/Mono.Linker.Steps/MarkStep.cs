@@ -1433,7 +1433,7 @@ namespace Mono.Linker.Steps {
 			}
 		}
 
-		bool ShouldParseMethodBody (MethodDefinition method)
+		protected virtual bool ShouldParseMethodBody (MethodDefinition method)
 		{
 			if (!method.HasBody)
 				return false;
@@ -1447,6 +1447,8 @@ namespace Mono.Linker.Steps {
 				case AssemblyAction.Link:
 				case AssemblyAction.Copy:
 				case AssemblyAction.CopyUsed:
+				case AssemblyAction.AddBypassNGen:
+				case AssemblyAction.AddBypassNGenUsed:
 					return true;
 				default:
 					return false;
