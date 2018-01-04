@@ -34,6 +34,12 @@ using Mono.Cecil.Cil;
 
 namespace Mono.Linker {
 
+	public class UnintializedContextFactory {
+		virtual public AnnotationStore CreateAnnotationStore (LinkContext context) => new AnnotationStore (context);
+		virtual public MarkingHelpers CreateMarkingHelpers (LinkContext context) => new MarkingHelpers (context);
+		virtual public Tracer CreateTracer (LinkContext context) => new Tracer (context);
+	}
+
 	public class LinkContext : IDisposable {
 
 		Pipeline _pipeline;
@@ -101,6 +107,8 @@ namespace Mono.Linker {
 			set { _ignoreUnresolved = value; }
 		}
 
+		public bool EnableReducedTracing { get; set; }
+
 		public System.Collections.IDictionary Actions {
 			get { return _actions; }
 		}
@@ -127,6 +135,10 @@ namespace Mono.Linker {
 
 		public ILogger Logger { get; set; } = new ConsoleLogger ();
 
+		public MarkingHelpers MarkingHelpers { get; private set; }
+
+		public Tracer Tracer { get; private set; }
+
 		public LinkContext (Pipeline pipeline)
 			: this (pipeline, new AssemblyResolver ())
 		{
@@ -136,19 +148,24 @@ namespace Mono.Linker {
 			: this(pipeline, resolver, new ReaderParameters
 			{
 				AssemblyResolver = resolver
-			},
-			new AnnotationStore ())
+			}, new UnintializedContextFactory ())
 		{
 		}
 
-		public LinkContext (Pipeline pipeline, AssemblyResolver resolver, ReaderParameters readerParameters, AnnotationStore annotations)
+		public LinkContext (Pipeline pipeline, AssemblyResolver resolver, ReaderParameters readerParameters, UnintializedContextFactory factory)
 		{
 			_pipeline = pipeline;
 			_resolver = resolver;
 			_actions = new Dictionary<string, AssemblyAction> ();
 			_parameters = new Dictionary<string, string> ();
-			_annotations = annotations;
 			_readerParameters = readerParameters;
+
+			if (factory == null)
+				throw new ArgumentNullException (nameof (factory));
+
+			_annotations = factory.CreateAnnotationStore (this);
+			MarkingHelpers = factory.CreateMarkingHelpers (this);
+			Tracer = factory.CreateTracer (this);
 		}
 
 		public TypeDefinition GetType (string fullName)
