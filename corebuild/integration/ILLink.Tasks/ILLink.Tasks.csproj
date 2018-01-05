@@ -192,6 +192,9 @@
     <ProjectReference Include="../ILLink.CustomSteps/ILLink.CustomSteps.csproj">
       <SetConfiguration>Configuration=illink_$(Configuration)</SetConfiguration>
     </ProjectReference>
+    <ProjectReference Include="../ILLink.ControlFlow/ILLink.ControlFlow.csproj">
+      <SetConfiguration>Configuration=illink_$(Configuration)</SetConfiguration>
+    </ProjectReference>
   </ItemGroup>
 
   <!-- Workaround for the SetConfiguration issue described above. -->
