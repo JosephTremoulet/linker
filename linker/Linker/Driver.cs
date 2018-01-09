@@ -226,43 +226,52 @@ namespace Mono.Linker {
 
 		protected static void AddCustomStep (Pipeline pipeline, string arg)
 		{
-			int pos = arg.IndexOf (":");
-			if (pos == -1) {
-				pipeline.AppendStep (ResolveStep (arg));
-				return;
-			}
+			string [] parts = arg.Split (':', '=');
 
-			string [] parts = arg.Split (':');
+			if (parts.Length == 1)
+            {
+                pipeline.AppendStep(ResolveStep(arg));
+                return;
+            }
+
 			if (parts.Length != 2)
-				Usage ("Step is specified as TYPE:STEP");
+				Usage ("Step is specified as TYPE:STEP to insert before, STEP:TYPE to insert after, and STEP=TYPE to replace");
 
 			if (parts [0].IndexOf (",") > -1)
 				pipeline.AddStepBefore (FindStep (pipeline, parts [1]), ResolveStep (parts [0]));
 			else if (parts [1].IndexOf (",") > -1)
-				pipeline.AddStepAfter (FindStep (pipeline, parts [0]), ResolveStep (parts [1]));
+            {
+				if (arg.IndexOf ('=') == -1)
+					pipeline.AddStepAfter (FindStep (pipeline, parts [0]), ResolveStep (parts [1]));
+				else
+                {
+					var oldStep = FindStep (pipeline, parts [0]);
+					pipeline.ReplaceStep (oldStep.GetType (), ResolveStep (parts [1], oldStep));
+                }
+			}
 			else
 				Usage ("No comma separator in TYPE or STEP");
 		}
 
-		static Type FindStep (Pipeline pipeline, string name)
+		static IStep FindStep (Pipeline pipeline, string name)
 		{
 			foreach (IStep step in pipeline.GetSteps ()) {
 				Type t = step.GetType ();
-				if (t.Name == name)
-					return t;
+				if (t.Name == name || t.BaseType.Name == name)
+					return step;
 			}
 
 			return null;
 		}
 
-		static IStep ResolveStep (string type)
+		static IStep ResolveStep (string type, params object [] args)
 		{
 			Type step = Type.GetType (type, false);
 			if (step == null)
 				Usage (String.Format ("Step type '{0}' not found.", type));
 			if (!typeof (IStep).IsAssignableFrom (step))
 				Usage (String.Format ("Step type '{0}' does not implement IStep interface.", type));
-			return (IStep) Activator.CreateInstance (step);
+			return (IStep) Activator.CreateInstance (step, args);
 		}
 
 		static string [] GetFiles (string param)

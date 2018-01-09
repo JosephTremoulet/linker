@@ -1,16 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using ILLink.ControlFlow;
 
+using Mono.Linker.Steps;
 using Cil = Mono.Cecil.Cil;
 
 namespace ILLink.CustomSteps
 {
     using static System.Diagnostics.Debug;
 
-    public class ExceptionalLinker : Mono.Linker.Steps.MarkStepWithReflectionHeuristics
+    public class NonExceptionMarkStep : MarkStepWithReflectionHeuristics
     {
+        public NonExceptionMarkStep(MarkStepWithReflectionHeuristics oldStep)
+			: this(oldStep, typeof(MarkStepWithReflectionHeuristics), oldStep.ReflectionHeuristics.ToList()) { }
+
+        public NonExceptionMarkStep(MarkStep oldStep) : this(oldStep, typeof(MarkStep), new string[0]) { }
+
+        private NonExceptionMarkStep(MarkStep oldStep, Type exactType,
+			ICollection<string> reflectionHeuristics) : base(reflectionHeuristics)
+        {
+            if (oldStep.GetType() != exactType)
+            {
+                throw new NotSupportedException($"Unrecognized mark step type {oldStep.GetType().Name}");
+            }
+        }
+
         protected override void MarkMethodBody(Cil.MethodBody methodBody)
         {
             var flowGraph = new FlowGraph(methodBody);

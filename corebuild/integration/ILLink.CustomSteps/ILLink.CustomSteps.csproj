@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <Compile Include="ClearInitLocals.cs" />
+    <Compile Include="NonExceptionMarkStep.cs" />
   </ItemGroup>
 
   <ItemGroup>

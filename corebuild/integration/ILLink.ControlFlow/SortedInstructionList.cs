@@ -41,7 +41,7 @@ namespace ILLink.ControlFlow.Collections
             set => list[index] = value;
         }
 
-        public void Sort()
+        public void SortAndRemoveDuplicates()
         {
             list.Sort(comparer);
 
@@ -53,6 +53,7 @@ namespace ILLink.ControlFlow.Collections
                 if (instruction != previousInstruction)
                 {
                     list[writeIndex++] = instruction;
+                    previousInstruction = instruction;
                 }
             }
 

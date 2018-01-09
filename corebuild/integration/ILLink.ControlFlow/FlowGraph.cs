@@ -369,18 +369,18 @@ namespace ILLink.ControlFlow
             {
                 do
                 {
-                    if (currentInstruction == EHRegionData(nextChildRegionID).StartInstruction)
+                    if (currentInstruction == EHRegionData(currentRegionID).EndInstruction) 
                     {
-                        // Starting the next child.
-                        currentRegionID = nextChildRegionID;
-                        nextChildRegionID = EHRegionData(currentRegionID).firstLexicalChild;
+                        // Ending the current region.
+                        nextChildRegionID = EHRegionData(currentRegionID).nextLexicalSibling;
+                        currentRegionID = EHRegionData(currentRegionID).lexicalParent;
                     }
                     else
                     {
-                        // Ending the current region.
-                        Assert(currentInstruction == EHRegionData(currentRegionID).EndInstruction);
-                        nextChildRegionID = EHRegionData(currentRegionID).nextLexicalSibling;
-                        currentRegionID = EHRegionData(currentRegionID).lexicalParent;
+                        // Starting the next child.
+                        Assert(currentInstruction == EHRegionData(nextChildRegionID).StartInstruction);
+                        currentRegionID = nextChildRegionID;
+                        nextChildRegionID = EHRegionData(currentRegionID).firstLexicalChild;
                     }
 
                     if (nextChildRegionID != EHRegionID.Invalid)
@@ -410,8 +410,7 @@ namespace ILLink.ControlFlow
             // Now walk the blocks, marking first and last instruction of each,
             // as well as recording innermost lexically enclosing handler.
             var previousBlock = BlockID.Invalid;
-            var lastInstruction = method.Instructions[method.Instructions.Count - 1];
-            for (int blockIndex = blockCount - 1; blockIndex >= 0; --blockIndex)
+            for (int blockIndex = 0; blockIndex < blockCount; ++blockIndex)
             {
                 var firstInstruction = firstInstructions[blockIndex];
 
@@ -459,7 +458,14 @@ namespace ILLink.ControlFlow
                 // Record first/last instructions.
                 ref var blockData = ref BlockData(id);
                 blockData.firstInstruction = firstInstruction;
-                blockData.lastInstruction = lastInstruction;
+				if (blockIndex < blockCount - 1)
+                {
+                    blockData.lastInstruction = firstInstructions[blockIndex + 1].Previous;
+                }
+                else
+                {
+                    blockData.lastInstruction = method.Instructions[method.Instructions.Count - 1];
+                }
 
                 // Record region
                 blockData.lexicalRegion = currentRegionID;
@@ -471,9 +477,6 @@ namespace ILLink.ControlFlow
                 {
                     BlockData(previousBlock).next = id;
                 }
-
-                // Update 'lastInstruction' for the next iteration.
-                lastInstruction = firstInstruction.Previous;
             }
 
             // Record the first block
@@ -530,7 +533,7 @@ namespace ILLink.ControlFlow
             }
 
             // Sort and de-dup the start offset list.
-            blockFirstInstructions.Sort();
+            blockFirstInstructions.SortAndRemoveDuplicates();
             return blockFirstInstructions;
         }
 

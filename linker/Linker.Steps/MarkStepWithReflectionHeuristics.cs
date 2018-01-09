@@ -10,6 +10,7 @@ namespace Mono.Linker.Steps {
 	public class MarkStepWithReflectionHeuristics : MarkStep {
 
 		protected ICollection<string> _reflectionHeuristics;
+        public IReadOnlyCollection<string> ReflectionHeuristics => (IReadOnlyCollection<string>)_reflectionHeuristics;
 
 		public MarkStepWithReflectionHeuristics (ICollection<string> reflectionHeuristics)
 		{
