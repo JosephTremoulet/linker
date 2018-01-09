@@ -30,7 +30,7 @@
     <Compile Include="InstructionRange.cs" />
     <Compile Include="LeaveEdge.cs" />
     <Compile Include="RefList.cs" />
-    <Compile Include="SortedInstructionList.cs" />
+    <Compile Include="InstructionVector.cs" />
   </ItemGroup>
 
   <ItemGroup>
