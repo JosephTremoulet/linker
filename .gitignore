@@ -15,8 +15,8 @@
 packages/
 
 # Build results
-linker/obj
-linker/bin
+obj
+bin
 corebuild/Tools
 corebuild/bootstrap.log
 
