@@ -29,6 +29,9 @@ namespace ILLink.CustomSteps
 
         protected override void MarkMethodBody(Cil.MethodBody methodBody)
         {
+            foreach (Cil.VariableDefinition var in methodBody.Variables)
+                MarkType(var.VariableType);
+
             var flowGraph = new FlowGraph(methodBody);
 
             var markedBlocks = new HashSet<BlockID>();
@@ -36,6 +39,7 @@ namespace ILLink.CustomSteps
 
             bool EnsureQueued(BlockID blockID)
             {
+                Assert(blockID != BlockID.Invalid);
                 if (markedBlocks.Add(blockID))
                 {
                     worklist.Enqueue(blockID);

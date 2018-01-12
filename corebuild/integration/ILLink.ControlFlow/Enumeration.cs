@@ -29,15 +29,15 @@ namespace ILLink.ControlFlow
 
             public bool MoveNext()
             {
-                if (!started)
-                {
-                    started = true;
-                    return true;
-                }
                 var impl = default(TImpl);
                 if (!impl.IsValid(currentID))
                 {
                     return false;
+                }
+                if (!started)
+                {
+                    started = true;
+                    return true;
                 }
                 currentID = impl.NextID(currentID, graph);
                 return impl.IsValid(currentID);

@@ -369,18 +369,19 @@ namespace ILLink.ControlFlow
             {
                 do
                 {
-                    if (currentInstruction == EHRegionData(currentRegionID).EndInstruction) 
+					if ((nextChildRegionID != EHRegionID.Invalid)
+						&& (currentInstruction == EHRegionData(nextChildRegionID).StartInstruction))
                     {
-                        // Ending the current region.
-                        nextChildRegionID = EHRegionData(currentRegionID).nextLexicalSibling;
-                        currentRegionID = EHRegionData(currentRegionID).lexicalParent;
+                        // Starting the next child.
+                        currentRegionID = nextChildRegionID;
+                        nextChildRegionID = EHRegionData(currentRegionID).firstLexicalChild;
                     }
                     else
                     {
-                        // Starting the next child.
-                        Assert(currentInstruction == EHRegionData(nextChildRegionID).StartInstruction);
-                        currentRegionID = nextChildRegionID;
-                        nextChildRegionID = EHRegionData(currentRegionID).firstLexicalChild;
+                        // Ending the current region.
+                        Assert(currentInstruction == EHRegionData(currentRegionID).EndInstruction);
+                        nextChildRegionID = EHRegionData(currentRegionID).nextLexicalSibling;
+                        currentRegionID = EHRegionData(currentRegionID).lexicalParent;
                     }
 
                     if (nextChildRegionID != EHRegionID.Invalid)
@@ -409,21 +410,22 @@ namespace ILLink.ControlFlow
 
             // Now walk the blocks, marking first and last instruction of each,
             // as well as recording innermost lexically enclosing handler.
-            var previousBlock = BlockID.Invalid;
-            for (int blockIndex = 0; blockIndex < blockCount; ++blockIndex)
+            BlockID id;
+            var previousID = BlockID.Invalid;
+            for (int blockIndex = 0; blockIndex < blockCount; previousID = id, ++blockIndex)
             {
                 var firstInstruction = firstInstructions[blockIndex];
 
                 // Allocate a descriptor for the block.
-                BlockID id;
                 if (firstInstruction == nextRegionChange)
                 {
                     // Advance to the next region
                     AdvanceCurrentRegion(firstInstruction);
 
-                    if (EHRegionData(currentRegionID).kind == EHRegionKind.Try)
+                    if ((currentRegionID == EHRegionID.Invalid)
+						|| (EHRegionData(currentRegionID).kind == EHRegionKind.Try))
                     {
-                        // Try regions get normal blocks.
+                        // Normal blocks are used for top-level and try regions.
 
                         id = AllocateBasicBlock();
                     }
@@ -472,10 +474,10 @@ namespace ILLink.ControlFlow
 
                 // Keep track of the ordered set of block IDs.
                 blockIDs[blockIndex] = id;
-                blockData.previous = previousBlock;
-                if (previousBlock != BlockID.Invalid)
+                blockData.previous = previousID;
+                if (previousID != BlockID.Invalid)
                 {
-                    BlockData(previousBlock).next = id;
+                    BlockData(previousID).next = id;
                 }
             }
 
@@ -692,6 +694,9 @@ namespace ILLink.ControlFlow
                     // need to continue onward.
                     return;
                 }
+
+                // Loop to find the next-outer finally
+                innerFinally = handlerRegion;
             }
         }
 
@@ -909,6 +914,8 @@ namespace ILLink.ControlFlow
         {
             var edgeID = AllocateEdge(kind);
             ref var edgeData = ref EdgeData(edgeID);
+            edgeData.predecessor = predecessorID;
+            edgeData.successor = successorID;
 
             ref var predecessorData = ref BlockData(predecessorID);
             ref var successorData = ref BlockData(successorID);
