@@ -187,7 +187,7 @@ namespace Mono.Linker.Steps
 
 		void ProcessExecutable (AssemblyDefinition assembly)
 		{
-			SetAction (Context, assembly, AssemblyAction.Link);
+			SetAction (Context, assembly, Context.UserAction);
 
 			Tracer.Push (assembly);
 
