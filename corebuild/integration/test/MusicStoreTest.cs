@@ -126,6 +126,10 @@ namespace ILLink.Tests
 		{
 			int ret;
 			if (Directory.Exists(repoName)) {
+				// Git may create readonly pack files
+				foreach (var file in Directory.EnumerateFiles(repoName, "*", SearchOption.AllDirectories)) {
+					File.SetAttributes(file, FileAttributes.Normal);
+				}
 				Directory.Delete(repoName, true);
 			}
 
