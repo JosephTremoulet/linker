@@ -130,7 +130,15 @@ namespace ILLink.Tests
 				foreach (var file in Directory.EnumerateFiles(repoName, "*", SearchOption.AllDirectories)) {
 					File.SetAttributes(file, FileAttributes.Normal);
 				}
-				Directory.Delete(repoName, true);
+				try {
+					Directory.Delete(repoName, true);
+				} catch {
+					// Sometimes Delete trips over itself because the SetAttribute calls
+					// are still pending or have AV holding those files open a bit too long
+					// or something.  One retry after the delay of throwing/catching the
+					// exception should do it.
+					Directory.Delete(repoName, true);
+				}
 			}
 
 			ret = RunCommand("git", $"clone {gitRepo}");
